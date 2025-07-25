@@ -1,7 +1,7 @@
 /* eslint-disable prettier/prettier */
 import { Prop, Schema, SchemaFactory } from "@nestjs/mongoose";
 import { Document, Types } from "mongoose";
-import { ItemType } from "./constants/item.type.enum";
+// import { ItemType } from "./constants/item.type.enum";
 
 export type StoreDocument = Store & Document;
 
@@ -9,7 +9,7 @@ export type StoreDocument = Store & Document;
 
 @Schema({ timestamps: true })
 export class Store {
-  @Prop({ required: true, enum: ItemType })
+  @Prop({required: true})
   itemType: string;
 
   @Prop({ required: true })
@@ -35,7 +35,25 @@ export class Store {
 
   @Prop({default: "admin"})
   addedBy: string;
-r
+
+  // 🔥 Character Attributes (important part)
+  @Prop({ required: true })
+  maxHealth: number;
+
+  @Prop({ required: true })
+  attack: number;
+
+  @Prop({ required: true })
+  defense: number;
+
+  @Prop({ required: true })
+  speed: number;
+
+  @Prop({ required: true })
+  specialPower: string; // e.g., "Flame Burst"
 }
+
+
+
 
 export const StoreSchema = SchemaFactory.createForClass(Store);

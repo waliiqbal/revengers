@@ -1,28 +1,62 @@
 /* eslint-disable prettier/prettier */
-import {
-  IsNotEmpty,
-  IsNumber,
-  IsString,
-} from "class-validator";
+import { IsString, IsNotEmpty, IsOptional, IsNumber, IsBoolean } from 'class-validator';
 
-export class CreateItemsDto {
-  @IsNotEmpty()
+export class CreateStoreDto {
   @IsString()
-  name: string;
-
   @IsNotEmpty()
-  @IsString()
-  image: string;
-
-  @IsNotEmpty()
-  @IsString()
-  shortCode: string;
-
-  @IsNotEmpty()
-  @IsString()
   itemType: string;
 
+  @IsString()
   @IsNotEmpty()
+  name: string;
+
+  @IsString()
+  @IsNotEmpty()
+  image: string;
+
+  @IsString()
+  @IsNotEmpty()
+  shortCode: string;
+
   @IsNumber()
-  price: number;
+  @IsOptional()
+  price?: number;
+
+  @IsBoolean()
+  @IsOptional()
+  isActive?: boolean;
+
+  @IsString()
+  @IsOptional()
+  googleId?: string;
+
+  @IsString()
+  @IsOptional()
+  appleId?: string;
+
+  @IsString()
+  @IsOptional()
+  addedBy?: string;
+
+  @IsNumber()
+  @IsNotEmpty()
+  maxHealth: number;
+
+  @IsNumber()
+  @IsNotEmpty()
+  attack: number;
+
+  @IsNumber()
+  @IsNotEmpty()
+  defense: number;
+
+  @IsNumber()
+  @IsNotEmpty()
+  speed: number;
+
+  @IsString()
+  @IsNotEmpty()
+  specialPower: string;
 }
+
+

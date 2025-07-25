@@ -11,11 +11,14 @@ export class DatabaseService {
     private userModel: Model<schema.UserDocument>,
     @InjectModel(schema.Store.name)
     private storeModel: Model<schema.StoreDocument>,
+    @InjectModel(schema.Payment.name)
+    private paymentModel: Model<schema.PaymentDocument>,
      ) {}
      get repositories() {
     return {
       userModel: this.userModel,
       storeModel: this.storeModel,
+      paymentModel: this.paymentModel
         };
   }
 }

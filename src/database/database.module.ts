@@ -13,6 +13,8 @@ import { DatabaseService } from './databaseservice'
     MongooseModule.forFeature([
       { name: schema.User.name, schema: schema.UserSchema },
        { name: schema.Store.name, schema: schema.StoreSchema },
+        { name: schema.Payment.name, schema: schema.PaymentSchema },
+
     ]),
   ],
   exports: [MongooseModule, DatabaseService],

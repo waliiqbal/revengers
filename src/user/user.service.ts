@@ -1,9 +1,12 @@
 /* eslint-disable prettier/prettier */
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { User, UserDocument } from './schema/user.schema';
-import { Model } from 'mongoose';;
-import { UpdateUserDto } from './dto/update-user.dto'
+import {UpdateUserDto} from "./dto/update-user.dto"
+
+
+
+
+
 import { DatabaseService } from "src/database/databaseservice";
 
  @Injectable()
@@ -12,43 +15,64 @@ import { DatabaseService } from "src/database/databaseservice";
 
     private databaseService: DatabaseService,
    ) {}
+  
+   async getProfile(userId: string) {
+  const user = await this.databaseService.repositories.userModel.findById(userId);
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  return {
+    name: user.name,
+    email: user.email,
+    ownedCharacters: user.ownedCharacters, // agar empty ho to empty array
+  };
+}
+
+async updateUserData(userId: string, dto: UpdateUserDto) {
+    const { name, characterId, updateCharacterFields } = dto;
+
+    const user = await this.databaseService.repositories.userModel.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (name) {
+      await this.databaseService.repositories.userModel.updateOne({ _id: userId }, { $set: { name } });
+    }
+
+    if (characterId && updateCharacterFields) {
+      const characterExists = user.ownedCharacters.some(
+        (char) => char.characterId.toString() === characterId
+      );
+
+      if (!characterExists) {
+        throw new NotFoundException('Character not found in ownedCharacters');
+      }
+
+      const updatePayload = Object.entries(updateCharacterFields).reduce((acc, [key, value]) => {
+        acc[`ownedCharacters.$.${key}`] = value;
+        return acc;
+      }, {});
+
+      await this.databaseService.repositories.userModel.updateOne(
+        { _id: userId, 'ownedCharacters.characterId': characterId },
+        { $set: updatePayload }
+      );
+    }
+
+    if (!name && !(characterId && updateCharacterFields)) {
+      throw new NotFoundException('Nothing to update. Provide name or characterId + updateCharacterFields');
+    }
+
+    return { message: 'User updated successfully' };
+  }
+
    
 
+   }
+
   // 🔍 Get all users
-  async findAll(): Promise<User[]> {
-    return this.databaseService.repositories.userModel.find().exec();
-  }
 
-  // 🔍 Get user by ID
-  async findById(id: string): Promise<User> {
-    const user = await this.databaseService.repositories.userModel.findById(id).exec();
-    if (!user) {
-      throw new NotFoundException(`User with ID ${id} not found`);
-    }
-    return user;
-  }
 
-  // ✏️ Update user by ID
-  async update(id: string, updateUserDto: UpdateUserDto): Promise<User> {
-    const updatedUser = await this.databaseService.repositories.userModel.findByIdAndUpdate(
-      id,
-      updateUserDto,
-      { new: true }
-    ).exec();
-
-    if (!updatedUser) {
-      throw new NotFoundException(`User with ID ${id} not found`);
-    }
-
-    return updatedUser;
-  }
-
-  // 🗑️ Delete user by ID
-  async delete(id: string): Promise<{ message: string }> {
-    const result = await this.databaseService.repositories.userModel.findByIdAndDelete(id).exec();
-    if (!result) {
-      throw new NotFoundException(`User with ID ${id} not found`);
-    }
-    return { message: 'User deleted successfully' };
-  }
-}

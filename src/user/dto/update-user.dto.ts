@@ -1,5 +1,5 @@
 /* eslint-disable prettier/prettier */
-import { IsOptional, IsString, IsEmail } from 'class-validator';
+import { IsOptional, IsString, IsMongoId, IsObject } from 'class-validator';
 
 export class UpdateUserDto {
   @IsOptional()
@@ -7,10 +7,19 @@ export class UpdateUserDto {
   name?: string;
 
   @IsOptional()
-  @IsEmail()
-  email?: string;
+  @IsMongoId()
+  characterId?: string;
 
   @IsOptional()
-  @IsString()
-  password?: string;
+  @IsObject()
+  updateCharacterFields?: {
+    name?: string;
+    maxHealth?: number;
+    attack?: number;
+    defense?: number;
+    speed?: number;
+    specialPower?: string;
+    level?: number;
+    experience?: number;
+  };
 }
