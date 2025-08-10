@@ -19,6 +19,18 @@ export class User {
   authProvider?: string;
 
   @Prop()
+  coins?: number;
+
+  @Prop()
+  diamonds?: number;
+
+  @Prop()
+  gems?: number;
+
+  @Prop()
+  trophies?: number;
+
+  @Prop()
   providerId?: string;
 
   @Prop({

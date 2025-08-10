@@ -45,7 +45,7 @@ export class AuthService {
     const payload = { sub: user._id, email: user.email };
     const token = this.jwtService.sign(payload);
 
-    return { message: 'User registered successfully', token };
+    return { message: 'User registered successfully', data: {token, user}  };
   } catch (error) {
     throw new UnauthorizedException(error.message || 'Signup failed');
   }
@@ -80,7 +80,7 @@ export class AuthService {
     const payload = { sub: user._id, email: user.email };
     const token = this.jwtService.sign(payload);
 
-    return { message: 'Login successful', token };
+    return { message: 'Login successful', data: { token, user } };
   } catch (error) {
     throw new UnauthorizedException(error.message || 'Login failed');
   }
@@ -144,7 +144,7 @@ async socialLogin(socialLoginDto: SocialLoginDto) {
       const payload = { sub: user._id, email: user.email };
       const jwtToken = this.jwtService.sign(payload);
 
-      return { message: 'Social login successful', token: jwtToken };
+      return { message: 'Social login successful', data: {token: jwtToken, user } };
     } catch (error) {
       throw new UnauthorizedException(error.message || 'Social login failed');
     }
