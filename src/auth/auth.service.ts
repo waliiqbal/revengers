@@ -188,7 +188,7 @@ async socialLogin(socialLoginDto: SocialLoginDto) {
       const payload = { sub: user._id, email: user.email };
       const jwtToken = this.jwtService.sign(payload);
 
-      return { message: 'Social login successful', token: jwtToken };
+      return { message: 'Social login successful', data: {token: jwtToken, user } };
     } catch (error) {
       throw new UnauthorizedException(error.message || 'Social login failed');
     }
