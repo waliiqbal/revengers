@@ -22,7 +22,8 @@ async createStoreItems(data: CreateStoreDto) {
 
   async listAllStoreItems() {
     
-    const storeItems = await this.databaseService.repositories.storeModel.find({isActive: true});
+  const storeItems = await this.databaseService.repositories.storeModel.find();
+  
 
     const response = {
       message: "fetch sucessfully StoreItems",
@@ -33,4 +34,27 @@ async createStoreItems(data: CreateStoreDto) {
 
     return response;
   }
+async unlockCharacter(body: any) {
+  const { shortcode, unlock } = body;
+
+  // character ko find karo aur unlock field update karo
+  const updatedCharacter = await this.databaseService.repositories.storeModel.findOneAndUpdate(
+    { shortcode },                  // jis character ka shortcode match kare
+    { $set: { unlock } },           // body se jo unlock aya use update karo
+    { new: true }                   // updated document return kare
+  );
+
+
+
+  if (!updatedCharacter) {
+    return {
+      message: 'Character not found',
+    };
+  }
+
+  return {
+    message: 'Character unlock status updated successfully',
+    data: updatedCharacter,
+  };
+}
 }

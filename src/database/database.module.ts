@@ -14,6 +14,10 @@ import { DatabaseService } from './databaseservice'
       { name: schema.User.name, schema: schema.UserSchema },
        { name: schema.Store.name, schema: schema.StoreSchema },
         { name: schema.Payment.name, schema: schema.PaymentSchema },
+          { name: schema.Game.name, schema: schema.GameSchema },
+           { name: schema.Friend.name, schema: schema.FriendSchema },
+            { name: schema.Clan.name, schema: schema.ClanSchema },
+             { name: schema.clanRequest.name, schema: schema.clanRequestSchema },
 
     ]),
   ],

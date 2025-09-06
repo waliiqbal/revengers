@@ -18,12 +18,18 @@ export class StoreController {
   constructor(private readonly storeService: StoreService) {}
 
   // ✅ 1. Create store item (admin panel or setup)
-  @Post('createStore')
+  @Post('addCharacter')
    async createStore(@Body() body: CreateStoreDto) {
     return await this.storeService.createStoreItems(body);
   }
 
-@Get('all-store-item')
+
+  @Patch('unlock-character')
+async unlockCharacter(@Body() body: any) {
+  return this.storeService.unlockCharacter(body);
+}
+
+@Get('getCharacter')
 async listAllStoreItems() {
   return await this.storeService.listAllStoreItems();
 }

@@ -2,61 +2,32 @@
 import { IsString, IsNotEmpty, IsOptional, IsNumber, IsBoolean } from 'class-validator';
 
 export class CreateStoreDto {
+@IsOptional()
   @IsString()
-  @IsNotEmpty()
-  itemType: string;
+  characterName?: string;
 
-  @IsString()
-  @IsNotEmpty()
-  name: string;
-
-  @IsString()
-  @IsNotEmpty()
-  image: string;
-
-  @IsString()
-  @IsNotEmpty()
-  shortCode: string;
-
-  @IsNumber()
   @IsOptional()
-  price?: number;
+  @IsString()
+  shortcode?: string;
 
+  @IsOptional()
   @IsBoolean()
+  unlock?: boolean;
+
   @IsOptional()
-  isActive?: boolean;
+  @IsNumber()
+  range?: number;
 
-  @IsString()
   @IsOptional()
-  googleId?: string;
+  @IsNumber()
+  damage?: number;
 
-  @IsString()
   @IsOptional()
-  appleId?: string;
+  @IsNumber()
+  durability?: number;
 
-  @IsString()
   @IsOptional()
-  addedBy?: string;
-
-  @IsNumber()
-  @IsNotEmpty()
-  maxHealth: number;
-
-  @IsNumber()
-  @IsNotEmpty()
-  attack: number;
-
-  @IsNumber()
-  @IsNotEmpty()
-  defense: number;
-
-  @IsNumber()
-  @IsNotEmpty()
-  speed: number;
-
   @IsString()
-  @IsNotEmpty()
-  specialPower: string;
+  desc?: string;
 }
-
 

@@ -45,7 +45,29 @@ export class AuthService {
     const payload = { sub: user._id, email: user.email };
     const token = this.jwtService.sign(payload);
 
-    return { message: 'User registered successfully', token };
+    return { 
+  message: 'User registered successfully',
+  data: {
+    name: user.name,
+    email: user.email,
+    displayPic: user.displayPic,
+    level: user.level,
+    currentXp: user.currentXp,
+    totalXp: user.totalXp,
+    gem: user.gem,
+    diamond: user.diamond,
+    coin: user.coin,
+    totalMatch: user.totalMatch,
+    won: user.won,
+    lost: user.lost,
+    kills: user.kills,
+    death: user.death,
+    assists: user.assists,
+    hours: user.hours,
+    availableSkill: user.availableSkill,
+    token
+  }
+};
   } catch (error) {
     throw new UnauthorizedException(error.message || 'Signup failed');
   }
@@ -64,9 +86,9 @@ export class AuthService {
 
     
     
-    if (user.authProvider) {
+    if (user.socialId) {
       throw new UnauthorizedException(
-        `This account is registered using ${user.authProvider} login. Use social login.`
+        `This account is registered using ${user.socialId} login. Use social login.`
       );
     }
 
@@ -80,7 +102,29 @@ export class AuthService {
     const payload = { sub: user._id, email: user.email };
     const token = this.jwtService.sign(payload);
 
-    return { message: 'Login successful', token };
+    return { 
+  message: 'User registered successfully',
+  data: {
+    name: user.name,
+    email: user.email,
+    displayPic: user.displayPic,
+    level: user.level,
+    currentXp: user.currentXp,
+    totalXp: user.totalXp,
+    gem: user.gem,
+    diamond: user.diamond,
+    coin: user.coin,
+    totalMatch: user.totalMatch,
+    won: user.won,
+    lost: user.lost,
+    kills: user.kills,
+    death: user.death,
+    assists: user.assists,
+    hours: user.hours,
+    availableSkill: user.availableSkill,
+    token
+  }
+};
   } catch (error) {
     throw new UnauthorizedException(error.message || 'Login failed');
   }

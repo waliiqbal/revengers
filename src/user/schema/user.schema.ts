@@ -6,49 +6,92 @@ export type UserDocument = User & Document;
 
 @Schema({ timestamps: true })
 export class User {
-  @Prop()
-  name?: string;
-
-  @Prop({ unique: true, required: true })
+@Prop({ required: true, unique: true })
   email: string;
 
-  @Prop()
-  password?: string;
+  @Prop({ default: '' })
+  name?: string;
+
+  @Prop({ default: '' })
+  displayPic?: string;
+
+  @Prop({ default: 1 })  // naya user hamesha level 1 pe hoga
+  level?: number;
+
+  @Prop({ default: 0 })  // naya user ka xp 0
+  currentXp?: number;
+
+  @Prop({ default: 0 })
+  totalXp?: number;
+
+  @Prop({ default: 0 })
+  gem?: number;
+
+  @Prop({ default: 0 })
+  diamond?: number;
+
+  @Prop({ default: 0 })
+  coin?: number;
+
+  @Prop({ default: 0 })
+  totalMatch?: number;
+
+  @Prop({ default: 0 })
+  won?: number;
+
+  @Prop({ default: 0 })
+  lost?: number;
+
+  @Prop({ default: 0 })
+  kills?: number;
+
+  @Prop({ default: 0 })
+  death?: number;
+
+  @Prop({ default: 0 })
+  assists?: number;
+
+  @Prop({ default: 0 })
+  hours?: number;
+
+  @Prop({ default: '' })
+  availableSkill?: string;
+
 
   @Prop()
-  authProvider?: string;
+  socialId?: string;   // optional, no default
 
   @Prop()
-  providerId?: string;
-
-  @Prop({
-    type: [
-      {
-        characterId: { type: Types.ObjectId, ref: 'Store' },
-        name: String,
-        maxHealth: Number,
-        attack: Number,
-        defense: Number,
-        speed: Number,
-        specialPower: String,
-        level: { type: Number, default: 1 },
-        experience: { type: Number, default: 0 },
-      }
-    ],
-    default: []
-  })
-  ownedCharacters: {
-    characterId: Types.ObjectId;
-    name: string;
-    maxHealth: number;
-    attack: number;
-    defense: number;
-    speed: number;
-    specialPower: string;
-    level: number;
-    experience: number;
-  }[];
+  password?: string;   // optional, no default
 }
+  // @Prop({
+  //   type: [
+  //     {
+  //       characterId: { type: Types.ObjectId, ref: 'Store' },
+  //       name: String,
+  //       maxHealth: Number,
+  //       attack: Number,
+  //       defense: Number,
+  //       speed: Number,
+  //       specialPower: String,
+  //       level: { type: Number, default: 1 },
+  //       experience: { type: Number, default: 0 },
+  //     }
+  //   ],
+  //   default: []
+  // })
+  // ownedCharacters: {
+  //   characterId: Types.ObjectId;
+  //   name: string;
+  //   maxHealth: number;
+  //   attack: number;
+  //   defense: number;
+  //   speed: number;
+  //   specialPower: string;
+  //   level: number;
+  //   experience: number;
+  // }[];
+
 
 
 

@@ -11,6 +11,9 @@ import { StoreModule } from './store/store.module';
 
 import { AuthModule } from './auth/auth.module';
 import { paymentModule } from './payment/payment.module';
+import { gameModule } from './game/game.module';
+import { friendModule } from './friend/friend.module';
+import { ClanModule } from './Clan/clan.module';
 
 @Module({
   imports: [
@@ -21,8 +24,12 @@ import { paymentModule } from './payment/payment.module';
     DatabaseModule,
     UsersModule,
     AuthModule,
+    ClanModule,
     StoreModule,
-    paymentModule
+    paymentModule,
+    friendModule,
+    gameModule,
+   
 
   ],
   controllers: [AppController],

@@ -11,14 +11,28 @@ export class DatabaseService {
     private userModel: Model<schema.UserDocument>,
     @InjectModel(schema.Store.name)
     private storeModel: Model<schema.StoreDocument>,
+    @InjectModel(schema.Game.name)
+    private gameModel: Model<schema.GameDocument>,
     @InjectModel(schema.Payment.name)
     private paymentModel: Model<schema.PaymentDocument>,
+    @InjectModel(schema.Friend.name)
+    private friendModel: Model<schema.FriendDocument>,
+    @InjectModel(schema.Clan.name)
+    private clanModel: Model<schema.ClanDocument>,
+    @InjectModel(schema.clanRequest.name)
+    private clanRequestModel: Model<schema.clanRequestDocument>,
+
      ) {}
      get repositories() {
     return {
       userModel: this.userModel,
       storeModel: this.storeModel,
-      paymentModel: this.paymentModel
+      paymentModel: this.paymentModel,
+      gameModel: this.gameModel,
+      friendModel: this.friendModel,
+      clanModel: this.clanModel,
+      clanRequestModel: this.clanRequestModel
+
         };
   }
 }

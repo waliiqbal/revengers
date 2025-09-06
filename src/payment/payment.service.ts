@@ -39,17 +39,17 @@ async purchaseItem(userId: string, purchaseItemDto: PurchaseItemDto) {
     });
 
     // 4. Owned character me item push karo
-    user.ownedCharacters.push({
-      characterId: item._id,
-      name: item.name,
-      maxHealth: item.maxHealth,
-      attack: item.attack,
-      defense: item.defense,
-      speed: item.speed,
-      specialPower: item.specialPower,
-      level: 1,
-      experience: 0,
-    });
+    // user.ownedCharacters.push({
+    //   characterId: item._id,
+    //   name: item.name,
+    //   maxHealth: item.maxHealth,
+    //   attack: item.attack,
+    //   defense: item.defense,
+    //   speed: item.speed,
+    //   specialPower: item.specialPower,
+    //   level: 1,
+    //   experience: 0,
+    // });
 
     await user.save();
 

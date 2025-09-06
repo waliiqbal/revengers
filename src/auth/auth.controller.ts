@@ -1,9 +1,11 @@
 /* eslint-disable prettier/prettier */
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Post,Req } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
 import { SocialLoginDto } from './dto/social-login.dto';
+import { AuthGuard } from '@nestjs/passport';
+import { UseGuards } from '@nestjs/common';
 
 
 
@@ -12,8 +14,9 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   // ✅ Signup
+ 
   @Post('signup')
-  async signup(@Body() signupDto: SignupDto) {
+  async signup( @Body() signupDto: SignupDto) {
     return this.authService.signup(signupDto);
   }
 

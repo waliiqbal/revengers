@@ -23,55 +23,66 @@ import { DatabaseService } from "src/database/databaseservice";
     throw new Error('User not found');
   }
 
-  return {
+  return { 
+  message: 'User registered successfully',
+  data: {
     name: user.name,
     email: user.email,
-    ownedCharacters: user.ownedCharacters, // agar empty ho to empty array
+    displayPic: user.displayPic,
+    level: user.level,
+    currentXp: user.currentXp,
+    totalXp: user.totalXp,
+    gem: user.gem,
+    diamond: user.diamond,
+    coin: user.coin,
+    totalMatch: user.totalMatch,
+    won: user.won,
+    lost: user.lost,
+    kills: user.kills,
+    death: user.death,
+    assists: user.assists,
+    hours: user.hours,
+    availableSkill: user.availableSkill,
+    
+  }
+};
+}
+async updateUserData(userId: string, dto: UpdateUserDto) {
+  const updatedUser = await this.databaseService.repositories.userModel.findByIdAndUpdate(
+    userId,
+    { $set: dto },   // dto me jo fields aayengi unhi ko update karega
+    { new: true }    // new: true ka matlab updated document return karega
+  );
+
+  if (!updatedUser) {
+    throw new NotFoundException('User not found');
+  }
+
+  return {
+    message: 'User updated successfully',
+    data: {
+      name: updatedUser.name,
+      email: updatedUser.email,
+      displayPic: updatedUser.displayPic,
+      level: updatedUser.level,
+      currentXp: updatedUser.currentXp,
+      totalXp: updatedUser.totalXp,
+      gem: updatedUser.gem,
+      diamond: updatedUser.diamond,
+      coin: updatedUser.coin,
+      totalMatch: updatedUser.totalMatch,
+      won: updatedUser.won,
+      lost: updatedUser.lost,
+      kills: updatedUser.kills,
+      death: updatedUser.death,
+      assists: updatedUser.assists,
+      hours: updatedUser.hours,
+      availableSkill: updatedUser.availableSkill,
+    }
   };
 }
 
-async updateUserData(userId: string, dto: UpdateUserDto) {
-    const { name, characterId, updateCharacterFields } = dto;
-
-    const user = await this.databaseService.repositories.userModel.findById(userId);
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    if (name) {
-      await this.databaseService.repositories.userModel.updateOne({ _id: userId }, { $set: { name } });
-    }
-
-    if (characterId && updateCharacterFields) {
-      const characterExists = user.ownedCharacters.some(
-        (char) => char.characterId.toString() === characterId
-      );
-
-      if (!characterExists) {
-        throw new NotFoundException('Character not found in ownedCharacters');
-      }
-
-      const updatePayload = Object.entries(updateCharacterFields).reduce((acc, [key, value]) => {
-        acc[`ownedCharacters.$.${key}`] = value;
-        return acc;
-      }, {});
-
-      await this.databaseService.repositories.userModel.updateOne(
-        { _id: userId, 'ownedCharacters.characterId': characterId },
-        { $set: updatePayload }
-      );
-    }
-
-    if (!name && !(characterId && updateCharacterFields)) {
-      throw new NotFoundException('Nothing to update. Provide name or characterId + updateCharacterFields');
-    }
-
-    return { message: 'User updated successfully' };
-  }
-
-   
-
-   }
+}
 
   // 🔍 Get all users
 

@@ -9,48 +9,27 @@ export type StoreDocument = Store & Document;
 
 @Schema({ timestamps: true })
 export class Store {
-  @Prop({required: true})
-  itemType: string;
+@Prop()
+characterName?: string;   // optional
 
-  @Prop({ required: true })
-  name: string;
+@Prop({ unique: true })   // sirf unique rakha, required hata diya
+shortcode?: string;       
 
-  @Prop({ required: true })
-  image: string;
+@Prop({ type: Boolean, default: false })
+unlock?: boolean;         
 
-  @Prop({ required: true })
-  shortCode: string;
+@Prop({ type: Number })
+range?: number;          
 
-  @Prop()
-  price: number;
+@Prop({ type: Number })
+damage?: number;         
 
-  @Prop({default: true})
-  isActive: boolean;
+@Prop({ type: Number })
+durability?: number;      
 
-  @Prop()
-  googleId: string;
+@Prop()
+desc?: string;   
 
-  @Prop()
-  appleId: string;
-
-  @Prop({default: "admin"})
-  addedBy: string;
-
-  // 🔥 Character Attributes (important part)
-  @Prop({ required: true })
-  maxHealth: number;
-
-  @Prop({ required: true })
-  attack: number;
-
-  @Prop({ required: true })
-  defense: number;
-
-  @Prop({ required: true })
-  speed: number;
-
-  @Prop({ required: true })
-  specialPower: string; // e.g., "Flame Burst"
 }
 
 
