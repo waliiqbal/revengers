@@ -86,9 +86,9 @@ export class AuthService {
 
     
     
-    if (user.socialId) {
+    if (user.providerId) {
       throw new UnauthorizedException(
-        `This account is registered using ${user.socialId} login. Use social login.`
+        `This account is registered using ${user.providerId} login. Use social login.`
       );
     }
 
@@ -129,70 +129,72 @@ export class AuthService {
     throw new UnauthorizedException(error.message || 'Login failed');
   }
 }
-async socialLogin(socialLoginDto: SocialLoginDto) {
-    try {
-      const { authProvider, token } = socialLoginDto;
+async socialLogin(
+  authProvider: string,
+  name: string,
+  email: string,
+  socialId: string,
+  displayPic: string
+) {
+  try {
+    // ✅ Step 1: Required checks
+    if (!socialId) {
+      throw new UnauthorizedException("socialId must be provided");
+    }
+    if (!email) {
+      throw new UnauthorizedException("email must be provided");
+    }
 
-      let socialId: string;
-      let email: string;
-      let userName: string;
+    // ✅ Step 2: Check if user exists by email
+    let user = await this.databaseService.repositories.userModel.findOne({ email });
 
-     
-      if (authProvider === 'google') {
-        const ticket = await this.googleClient.verifyIdToken({
-          idToken: token,
-          audience: process.env.GOOGLE_CLIENT_ID,
-        });
-
-        const payload = ticket.getPayload();
-        socialId = payload.sub;
-        email = payload.email;
-        userName = payload.name;
-      }
-
-      // ✅ Verify Facebook Token
-      else if (authProvider === 'facebook') {
-        const fbResponse = await axios.get(
-          `https://graph.facebook.com/me?fields=id,name,email&access_token=${token}`
-        );
-
-        socialId = fbResponse.data.id;
-        email = fbResponse.data.email;
-        userName = fbResponse.data.name;
-      }
-
- 
-      else {
-        throw new UnauthorizedException('Unsupported auth provider');
-      }
-
-   
-      let user = await this.databaseService.repositories.userModel.findOne({
-        providerId: socialId,
-        authProvider,
-      });
-
-     
-      if (!user) {
-        user = new this.databaseService.repositories.userModel({
-          name: userName,
-          email,
-          providerId: socialId,
-          authProvider,
-        });
-
+    if (user) {
+      // 👉 Case A: User already exists with password but no socialId
+      if (user.password && !user.providerId) {
+        user.providerId = socialId;
+        user.authProvider = authProvider;
+        user.displayPic = displayPic;
         await user.save();
       }
 
-   
-      const payload = { sub: user._id, email: user.email };
-      const jwtToken = this.jwtService.sign(payload);
-
-      return { message: 'Social login successful', data: {token: jwtToken, user } };
-    } catch (error) {
-      throw new UnauthorizedException(error.message || 'Social login failed');
+      // 👉 Case B: User already exists with socialId
+      else if (user.providerId && user.providerId !== socialId) {
+        throw new UnauthorizedException(
+          "This email is linked with another social account."
+        );
+      }
+    } else {
+      
+    user = new this.databaseService.repositories.userModel({
+        name,
+        email,
+        providerId: socialId,
+        authProvider,
+        displayPic,
+      });
+      await user.save();
     }
+
+    // ✅ Step 3: Generate token
+    const payload = {
+      sub: user._id,
+      email: user.email,
+    };
+
+    const jwtToken = this.jwtService.sign(payload, { expiresIn: "1h" });
+
+    return {
+      message: "Social login successful",
+      data: {
+        token: jwtToken,
+        user,
+      },
+    };
+  } catch (error) {
+    throw new UnauthorizedException(error.message || "Social login failed");
   }
+}
+
 }
 
 

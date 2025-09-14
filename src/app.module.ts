@@ -14,6 +14,8 @@ import { paymentModule } from './payment/payment.module';
 import { gameModule } from './game/game.module';
 import { friendModule } from './friend/friend.module';
 import { ClanModule } from './Clan/clan.module';
+import { UploadModule } from './upload/upload.module';
+import { FirebaseAdminModule } from './firebaseAdmin/firebase-admin.module';
 
 @Module({
   imports: [
@@ -29,6 +31,8 @@ import { ClanModule } from './Clan/clan.module';
     paymentModule,
     friendModule,
     gameModule,
+    UploadModule,
+    FirebaseAdminModule
    
 
   ],

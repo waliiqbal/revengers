@@ -57,9 +57,12 @@ export class User {
   @Prop({ default: '' })
   availableSkill?: string;
 
+@Prop({ required: false, unique: true })
+  providerId?: string;
+  
+  @Prop({ required: false  })
+  authProvider?: string;
 
-  @Prop()
-  socialId?: string;   // optional, no default
 
   @Prop()
   password?: string;   // optional, no default

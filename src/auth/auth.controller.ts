@@ -27,8 +27,10 @@ export class AuthController {
   }
 
   // ✅ Social Login
-  @Post('social-login')
-  async socialLogin(@Body() socialLoginDto: SocialLoginDto) {
-    return this.authService.socialLogin(socialLoginDto);
-  }
+ @Post('social-login')
+  async socialLogin(@Body() body: any) {
+  const { authProvider,  name, email, socialId, displayPic } = body;
+  
+  return this.authService.socialLogin(authProvider, name, email, socialId, displayPic);
+}
 }
