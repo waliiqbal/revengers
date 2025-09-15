@@ -12,6 +12,9 @@ export class User {
   @Prop({ default: '' })
   name?: string;
 
+  @Prop({ default: null })
+  fcmToken?: string;
+
   @Prop({ default: '' })
   displayPic?: string;
 

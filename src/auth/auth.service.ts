@@ -25,7 +25,7 @@ export class AuthService {
   // ✅ Signup
  async signup(signupDto: SignupDto) {
   try {
-    const { name, email, password } = signupDto;
+    const { name, email, password, fcmToken } = signupDto;
 
     const existingUser = await this.databaseService.repositories.userModel.findOne({ email });
     if (existingUser) {
@@ -36,6 +36,7 @@ export class AuthService {
 
     const user = new this.databaseService.repositories.userModel({
       name,
+      fcmToken,
       email,
       password: hashedPassword, 
     });
@@ -77,7 +78,7 @@ export class AuthService {
   // ✅ Login
   async login(loginDto: LoginDto) {
   try {
-    const { email, password } = loginDto;
+    const { email, password, fcmToken } = loginDto;
 
     const user = await this.databaseService.repositories.userModel.findOne({ email });
 
@@ -102,6 +103,10 @@ export class AuthService {
     // ✅ Generate token
     const payload = { sub: user._id, email: user.email };
     const token = this.jwtService.sign(payload);
+    if(fcmToken){
+      user.fcmToken = fcmToken;
+      user.save();
+    }
 
     return { 
   message: 'User registered successfully',
@@ -136,7 +141,8 @@ async socialLogin(
   name: string,
   email: string,
   socialId: string,
-  displayPic: string
+  displayPic: string,
+  fcmToken: string
 ) {
   try {
     // ✅ Step 1: Required checks
@@ -156,6 +162,7 @@ async socialLogin(
         user.providerId = socialId;
         user.authProvider = authProvider;
         user.displayPic = displayPic;
+        user.fcmToken = fcmToken || null;
         await user.save();
       }
 
@@ -172,6 +179,7 @@ async socialLogin(
         email,
         providerId: socialId,
         authProvider,
+        fcmToken: fcmToken || null,
         displayPic,
       });
       await user.save();
