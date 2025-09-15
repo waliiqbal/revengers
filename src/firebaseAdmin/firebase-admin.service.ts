@@ -1,7 +1,7 @@
 /* eslint-disable prettier/prettier */
 import { Injectable } from '@nestjs/common';
 import * as admin from 'firebase-admin';
-import { serviceAccount } from '../certs/firebase-adminsdk';
+import { serviceAccount } from '../certs/firebase-adminsdkrevengers';
 
 @Injectable()
 export class FirebaseAdminService {

@@ -141,7 +141,7 @@ async getFriendRequests(
   const userDetails = requests.map((req: any) => {
     const user = req[populateField];
     return {
-      id: user._id,
+      _id: user._id,
       name: user.name,
       displayPic: user.displayPic,
       level: user.level,
@@ -430,7 +430,7 @@ async getAllUsers(currentUserId: string, page: number, limit: number, search?: s
     }
 
     return {
-      id: user._id,
+      _id: user._id,
       name: user.name,
       displayPic: user.displayPic,
       level: user.level,
