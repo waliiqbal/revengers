@@ -76,4 +76,21 @@ async declineClanRequest(
     const limitNumber = limit ? parseInt(limit) : 10;
     return this.ClanService.getClanFriends( clanId, userId , pageNumber, limitNumber);
   }
+
+@UseGuards(AuthGuard("jwt"))
+  @Get("getClansWithStatus")
+  async getClansWithStatus(
+    @Req() req: any,
+    @Query("page") page: string,
+    @Query("limit") limit: string,
+    @Query("search") search?: string
+  ) {
+    const userId = req.user.userId;
+    const pageNumber = page ? parseInt(page) : 1;
+    const limitNumber = limit ? parseInt(limit) : 10;
+
+    return this.ClanService.getClansWithStatus(userId, pageNumber, limitNumber, search);
+  }
+
 }
+

@@ -299,6 +299,81 @@ const memberIds = clan.members;
   };
 }
 
+async getClansWithStatus(
+  userId: string,
+  page: number,
+  limit: number,
+  search?: string
+) {
+  const query: any = {};
+  if (search) {
+    query.clanName = { $regex: search, $options: "i" };
+  }
+
+  const clans = await this.databaseService.repositories.clanModel
+    .find(query)
+    .skip((page - 1) * limit)
+    .limit(limit);
+
+  const results = [];
+
+  for (const clan of clans) {
+    let status = "open"; // default
+
+    const userObjectId = new Types.ObjectId(userId);
+
+    // ✅ Leader check
+    if (clan.leader?.toString() === userId) {
+      status = "leader";
+    }
+    // ✅ Member check
+    else if (clan.members.some(m => m.toString() === userId)) {
+      status = "member";
+    }
+    // ✅ Request check
+    else {
+      const request = await this.databaseService.repositories.clanRequestModel.findOne({
+        clanId: clan._id,
+        senderId: userObjectId
+      });
+
+      if (request) {
+        if (request.status === "pending") {
+          status = "pending";
+        } else if (request.status === "open") {
+          status = "open"; // rejected → still open for new request
+        } else if (request.status === "close") {
+          // ✅ close = request accepted → banda ab member hai
+          status = "member";
+        }
+      }
+    }
+
+    results.push({
+      clanId: clan._id,
+      clanName: clan.clanName,
+      clanDisplayPic: clan.clanDisplayPic,
+      clanLevel: clan.clanLevel,
+      clanStatus: clan.clanStatus,
+      status
+    });
+  }
+
+  const total = await this.databaseService.repositories.clanModel.countDocuments(query);
+
+  return {
+    message: "Clans fetched successfully",
+    data: results,
+    pagination: {
+      total,
+      page,
+      limit
+    }
+  };
+}
 
 }
+
+
+
 
