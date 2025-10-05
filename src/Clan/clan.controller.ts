@@ -92,5 +92,40 @@ async declineClanRequest(
     return this.ClanService.getClansWithStatus(userId, pageNumber, limitNumber, search);
   }
 
+   @UseGuards(AuthGuard('jwt'))
+  @Get('getMyClan')
+  async getMyClan(@Req() req: any) {
+    const userId = req.user.userId; // JWT token se leader ka ID
+    return this.ClanService.getMyClan(userId);
+  }
+
+ 
+  @Get('getClanMembers')
+  async getClanMembers(@Query('clanId') clanId: string) {
+    return this.ClanService.getClanMembers(clanId);
+  }
+
+  
+  @UseGuards(AuthGuard('jwt'))
+  @Post('removeMemberByLeader')
+  async removeMember(
+    @Req() req: any,
+    @Body('clanId') clanId: string,
+    @Body('userId') userId: string,
+  ) {
+    const leaderId = req.user.userId; // JWT se leader ID
+    return this.ClanService.removeMember(leaderId, clanId, userId);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+@Post('removeMemberBySelf')
+async removeMemberBySelf(
+  @Req() req: any,
+  @Body('clanId') clanId: string,
+) {
+  const userId = req.user.userId; // 🔹 JWT token se user ID
+  return this.ClanService.removeMemberBySelf(userId, clanId);
 }
+}
+
 

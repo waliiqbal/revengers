@@ -312,6 +312,7 @@ async getClansWithStatus(
 
   const clans = await this.databaseService.repositories.clanModel
     .find(query)
+    .sort({ clanTotalWin: -1 })
     .skip((page - 1) * limit)
     .limit(limit);
 
@@ -349,13 +350,18 @@ async getClansWithStatus(
       }
     }
 
-    results.push({
+   results.push({
       clanId: clan._id,
       clanName: clan.clanName,
       clanDisplayPic: clan.clanDisplayPic,
       clanLevel: clan.clanLevel,
       clanStatus: clan.clanStatus,
-      status
+      clanTotalWin: clan.clanTotalWin,
+      clanTotalLose: clan.clanTotalLose,
+      clanCurrentMembers: clan.clanCurrentMembers,
+      clanMembersMaxLimit: clan.clanMembersMaxLimit,
+      leader: clan.leader,
+      status,
     });
   }
 
@@ -372,8 +378,142 @@ async getClansWithStatus(
   };
 }
 
+async getMyClan(userId: string) {
+  const userObjectId = new Types.ObjectId(userId);
+
+    const clan = await this.databaseService.repositories.clanModel.findOne({ leader: userObjectId });
+
+    if (!clan) {
+      throw new BadRequestException('Clan not found');
+    }
+
+    return {
+      message: 'Clan found successfully',
+      data: clan,
+    };
+  }
+
+
+async getClanMembers(clanId: string) {
+  // 1️⃣ Clan find karo by ID
+  const clan = await this.databaseService.repositories.clanModel.findById(clanId);
+  if (!clan) throw new BadRequestException('Clan not found');
+
+  // 2️⃣ Check karo agar members list empty hai
+  if (!clan.members || clan.members.length === 0) {
+    return {
+      message: 'No members found in this clan',
+      data: [],
+    };
+  }
+
+  // 3️⃣ Ab members ke actual user documents lao userModel se
+  const members = await this.databaseService.repositories.userModel.find(
+    { _id: { $in: clan.members } },   // jitne members ke IDs clan.members me hain
+    { name: 1, displayPic: 1, level: 1, _id: 1 }  // ye fields hi chahiye response me
+  );
+
+  // 4️⃣ Return final response
+  return {
+    message: 'Clan members fetched successfully',
+    data: members,
+  };
 }
 
 
+async removeMember(leaderId: string, clanId: string, userId: string) {
+    // 1️⃣ Find the clan
+    const clan = await this.databaseService.repositories.clanModel.findById(clanId);
+    if (!clan) throw new BadRequestException('Clan not found');
+
+    // 2️⃣ Verify leader
+    if (clan.leader.toString() !== leaderId.toString()) {
+      throw new BadRequestException('Only the leader can remove a member from this clan');
+    }
+
+    // 3️⃣ Check if member exists in members array
+    const memberIndex = clan.members.findIndex(
+      (m) => m.toString() === userId.toString(),
+    );
+    if (memberIndex === -1) {
+      throw new BadRequestException('Member not found in clan');
+    }
+
+    // 4️⃣ Remove member from array
+    clan.members.splice(memberIndex, 1);
+
+    // 5️⃣ Decrease current member count
+    if (clan.clanCurrentMembers > 0) {
+      clan.clanCurrentMembers -= 1;
+    }
+
+    // 6️⃣ Save updated clan
+    await clan.save();
+
+    // 7️⃣ Delete clan request document (clanId + senderId)
+    await this.databaseService.repositories.clanRequestModel.deleteOne({
+      clanId: new Types.ObjectId(clanId),
+      senderId: new Types.ObjectId(userId),
+    });
+
+    // 8️⃣ Return response
+    return {
+      message: 'Member removed successfully',
+      data: {
+        removedUserId: userId,
+        clanId,
+        currentMembers: clan.clanCurrentMembers,
+      },
+    };
+  }
+
+  async removeMemberBySelf(userId: string, clanId: string) {
+  // 1️⃣ Clan find karo by clanId
+  const clan = await this.databaseService.repositories.clanModel.findById(clanId);
+  if (!clan) throw new BadRequestException('Clan not found');
+
+  // 2️⃣ Check karo ke user clan me member hai ya nahi
+  const memberIndex = clan.members.findIndex(
+    (m) => m.toString() === userId.toString(),
+  );
+  if (memberIndex === -1) {
+    throw new BadRequestException('You are not a member of this clan');
+  }
+
+  // 3️⃣ Leader khud ko remove nahi kar sakta (optional check)
+  if (clan.leader.toString() === userId.toString()) {
+    throw new BadRequestException('Leader cannot leave the clan directly');
+  }
+
+  // 4️⃣ Members array se user ko remove karo
+  clan.members.splice(memberIndex, 1);
+
+  // 5️⃣ Clan current member count kam karo
+  if (clan.clanCurrentMembers > 0) {
+    clan.clanCurrentMembers -= 1;
+  }
+
+  // 6️⃣ Clan save karo updated data ke sath
+  await clan.save();
+
+  // 7️⃣ Clan request document delete karo (clanId + senderId)
+  await this.databaseService.repositories.clanRequestModel.deleteOne({
+    clanId: new Types.ObjectId(clanId),
+    senderId: new Types.ObjectId(userId),
+  });
+
+  // 8️⃣ Response return karo
+  return {
+    message: 'You have successfully left the clan',
+    data: {
+      leftUserId: userId,
+      clanId,
+      currentMembers: clan.clanCurrentMembers,
+    },
+  };
+}
+
+
+ }
 
 

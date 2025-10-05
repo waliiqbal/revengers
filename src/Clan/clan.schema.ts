@@ -6,8 +6,7 @@ export type ClanDocument = Clan & Document;
 
 @Schema({ timestamps: true })
 export class Clan {
-  @Prop({ required: true })
-  clanName: string;   
+  @Prop({ required: true })   clanName: string;   
 
   @Prop({ default: "" })
   clanDisplayPic?: string; // clan ka profile pic
