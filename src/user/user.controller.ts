@@ -1,36 +1,59 @@
 /* eslint-disable prettier/prettier */
-import { Controller, Get, Param, Put, Delete, Body, Req, Patch } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Body,
+  Req,
+  Patch,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
+import { AuthGuard } from '@nestjs/passport';
 import { UsersService } from './user.service';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { User } from './schema/user.schema';
-import { AuthGuard } from '@nestjs/passport';
-import { UseGuards } from '@nestjs/common';
 
+@ApiTags('Users')
+@ApiBearerAuth()
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  // 🔍 GET /users → Get all users
+  @Get('getProfile')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Get logged-in user profile' })
+  @ApiResponse({
+    status: 200,
+    description: 'User profile fetched successfully',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  async getProfile(@Req() req) {
+    const userId = req.user.userId;
+    return this.usersService.getProfile(userId);
+  }
 
-@Get('getProfile')
-@UseGuards(AuthGuard('jwt'))
-async getProfile(@Req() req) {
-  const userId = req.user.userId;
-  return this.usersService.getProfile(userId);
+  @Patch('update-user')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Update logged-in user data' })
+  @ApiBody({ type: UpdateUserDto })
+  @ApiResponse({
+    status: 200,
+    description: 'User updated successfully',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized',
+  })
+  async updateUser(@Req() req, @Body() updateUserDto: UpdateUserDto) {
+    const userId = req.user.userId;
+    return this.usersService.updateUserData(userId, updateUserDto);
+  }
 }
-
-@Patch('update-user')
-@UseGuards(AuthGuard('jwt'))
-async updateUser(@Req() req, @Body() updateUserDto: UpdateUserDto) {
-  const userId = req.user.userId;
-  return this.usersService.updateUserData(userId, updateUserDto);
-}
-  // 🔍 GET /users/:id → Get user by ID
-
-
-
-  // ✏️ PUT /users/:id → Update user
- 
-
-  // 🗑️ DELETE /users/:id → Delete user
- }
