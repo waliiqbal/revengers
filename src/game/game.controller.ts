@@ -1,5 +1,5 @@
 /* eslint-disable prettier/prettier */
-import { Controller, Get, Param, Put, Delete, Body, Req, Patch , Post} from '@nestjs/common';
+import { Controller, Body, Post } from '@nestjs/common';
 import { GameService } from './game.service'
 
 @Controller('Game')

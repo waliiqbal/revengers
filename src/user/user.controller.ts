@@ -4,7 +4,7 @@ import {
   Get,
   Body,
   Req,
-  Patch,
+  Post,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -40,7 +40,7 @@ export class UsersController {
     return this.usersService.getProfile(userId);
   }
 
-  @Patch('update-user')
+  @Post('update-user')
   @UseGuards(AuthGuard('jwt'))
   @ApiOperation({ summary: 'Update logged-in user data' })
   @ApiBody({ type: UpdateUserDto })

@@ -1,5 +1,5 @@
 /* eslint-disable prettier/prettier */
-import { Controller, Post, Body, Req,Patch, Param, Query, Get } from "@nestjs/common";
+import { Controller, Post, Body, Req, Query, Get } from "@nestjs/common";
 import { ClanService } from "./clan.service";
 import { AuthGuard } from '@nestjs/passport';
 import { UseGuards } from "@nestjs/common";

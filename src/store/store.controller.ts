@@ -3,9 +3,6 @@ import {
   Controller,
   Post,
   Get,
-  Param,
-  Patch,
-  Delete,
   Body,
 
   
@@ -24,7 +21,7 @@ export class StoreController {
   }
 
 
-  @Patch('unlock-character')
+  @Post('unlock-character')
 async unlockCharacter(@Body() body: any) {
   return this.storeService.unlockCharacter(body);
 }
@@ -34,4 +31,3 @@ async listAllStoreItems() {
   return await this.storeService.listAllStoreItems();
 }
 }
-

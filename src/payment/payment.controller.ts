@@ -2,10 +2,6 @@
 import {
   Controller,
   Post,
-  Get,
-  Param,
-  Patch,
-  Delete,
   Body,
   Req
 
@@ -28,5 +24,4 @@ export class paymentController {
     return this.paymentService.purchaseItem(userId, purchaseItemDto);
   }
 }
-
 
