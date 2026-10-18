@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Revengers Admin</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <!-- ===== Login ===== -->
+  <section id="login-view" class="login" hidden>
+    <form id="login-form" class="login-card">
+      <div class="brand brand-lg"><span class="brand-mark">R</span> Revengers Admin</div>
+      <p class="muted">Sign in with an admin account.</p>
+      <label>Email <input id="login-email" type="email" autocomplete="username" required /></label>
+      <label>Password <input id="login-password" type="password" autocomplete="current-password" required /></label>
+      <p id="login-error" class="error" hidden></p>
+      <button class="btn btn-primary btn-block" type="submit">Sign in</button>
+    </form>
+  </section>
+
+  <!-- ===== App ===== -->
+  <div id="app-view" class="layout" hidden>
+    <aside class="sidebar">
+      <div class="brand"><span class="brand-mark">R</span> Revengers</div>
+      <nav>
+        <a href="#overview" data-view="overview" class="nav-link">
+          <svg viewBox="0 0 24 24"><path d="M4 13h6V4H4zm0 7h6v-5H4zm10 0h6v-9h-6zm0-16v5h6V4z"/></svg> Overview
+        </a>
+        <a href="#players" data-view="players" class="nav-link">
+          <svg viewBox="0 0 24 24"><path d="M16 11a4 4 0 1 0-4-4 4 4 0 0 0 4 4zm-8 0a3 3 0 1 0-3-3 3 3 0 0 0 3 3zm0 2c-2.7 0-6 1.3-6 3.5V19h7v-2.5c0-1 .4-2 1.2-2.8A9 9 0 0 0 8 13zm8 0c-3 0-7 1.5-7 4v2h14v-2c0-2.5-4-4-7-4z"/></svg> Players
+        </a>
+        <a href="#leaderboard" data-view="leaderboard" class="nav-link">
+          <svg viewBox="0 0 24 24"><path d="M7 21H3v-8h4zm7 0h-4V3h4zm7 0h-4v-12h4z"/></svg> Leaderboard
+        </a>
+      </nav>
+      <div class="sidebar-foot">
+        <div class="muted small">Signed in as</div>
+        <div id="admin-email" class="admin-email"></div>
+        <button id="logout-btn" class="btn btn-ghost btn-block">Log out</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <!-- Overview -->
+      <section id="view-overview" class="view" hidden>
+        <header class="page-head">
+          <div><h1>Overview</h1><p class="muted">How the game is doing right now.</p></div>
+          <button class="btn btn-ghost" data-refresh>Refresh</button>
+        </header>
+        <div id="stat-tiles" class="tiles"></div>
+        <div class="charts">
+          <div class="card card-pair">
+            <h2>Player status</h2>
+            <div class="chart-box chart-donut"><canvas id="chart-status"></canvas></div>
+            <ul id="status-legend" class="legend"></ul>
+          </div>
+          <div class="card card-wide">
+            <h2>New players per day <span class="muted small">last 14 days</span></h2>
+            <div class="chart-box"><canvas id="chart-signups"></canvas></div>
+          </div>
+          <div class="card card-wide">
+            <h2>Games played per day <span class="muted small">last 14 days</span></h2>
+            <div class="chart-box"><canvas id="chart-games"></canvas></div>
+          </div>
+          <div class="card card-pair">
+            <h2>Top 10 players <span class="muted small">by total XP</span></h2>
+            <div class="chart-box chart-tall"><canvas id="chart-top"></canvas></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Players -->
+      <section id="view-players" class="view" hidden>
+        <header class="page-head">
+          <div><h1>Players</h1><p class="muted">Search, inspect, ban or remove players.</p></div>
+        </header>
+        <div class="toolbar card">
+          <input id="player-search" type="search" placeholder="Search name or email…" />
+          <select id="player-status" aria-label="Status">
+            <option value="all">All (not removed)</option>
+            <option value="active">Active</option>
+            <option value="banned">Banned</option>
+            <option value="removed">Removed</option>
+          </select>
+          <select id="player-sort" aria-label="Sort by">
+            <option value="createdAt:desc">Newest first</option>
+            <option value="createdAt:asc">Oldest first</option>
+            <option value="totalXp:desc">Most XP</option>
+            <option value="level:desc">Highest level</option>
+            <option value="won:desc">Most wins</option>
+            <option value="kills:desc">Most kills</option>
+            <option value="name:asc">Name A–Z</option>
+          </select>
+        </div>
+        <div class="card table-card">
+          <div class="table-scroll">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>Player</th><th class="num">Level</th><th class="num">XP</th><th class="num">Matches</th>
+                  <th class="num">Win rate</th><th class="num">K/D</th><th>Joined</th><th>Status</th><th class="actions-col">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="players-body"></tbody>
+            </table>
+          </div>
+          <div id="players-pager" class="pager"></div>
+        </div>
+      </section>
+
+      <!-- Leaderboard -->
+      <section id="view-leaderboard" class="view" hidden>
+        <header class="page-head">
+          <div><h1>Leaderboard</h1><p class="muted">Banned and removed players are hidden.</p></div>
+          <select id="lb-metric" aria-label="Rank by">
+            <option value="totalXp">Total XP</option>
+            <option value="level">Level</option>
+            <option value="won">Wins</option>
+            <option value="kills">Kills</option>
+            <option value="totalMatch">Matches played</option>
+            <option value="hours">Hours played</option>
+          </select>
+        </header>
+        <div class="card">
+          <h2 id="lb-chart-title">Top 10</h2>
+          <div class="chart-box chart-tall"><canvas id="chart-lb"></canvas></div>
+        </div>
+        <div class="card table-card">
+          <div class="table-scroll">
+            <table class="table">
+              <thead>
+                <tr><th class="num">Rank</th><th>Player</th><th class="num">Level</th><th class="num">XP</th><th class="num">Wins</th><th class="num">Kills</th><th class="num">Matches</th><th class="num">Hours</th></tr>
+              </thead>
+              <tbody id="lb-body"></tbody>
+            </table>
+          </div>
+          <div id="lb-pager" class="pager"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal + toast -->
+  <div id="modal" class="modal" hidden>
+    <div class="modal-card" role="dialog" aria-modal="true">
+      <div class="modal-head"><h2 id="modal-title"></h2><button class="icon-btn" data-close aria-label="Close">×</button></div>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

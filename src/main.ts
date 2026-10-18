@@ -2,9 +2,14 @@ import { NestFactory } from '@nestjs/core';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
+import { NestExpressApplication } from '@nestjs/platform-express';
+import { join } from 'path';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
+  // 🖥️ Admin dashboard (public/admin-panel) → http://<server>:3002/admin-panel/
+  app.useStaticAssets(join(__dirname, '..', 'public'));
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -32,5 +37,6 @@ async function bootstrap() {
 
   console.log(`🚀 Server: http://localhost:3002`);
   console.log(`📘 Swagger: http://localhost:3002/api-docs`);
+  console.log(`🖥️  Admin:   http://localhost:3002/admin-panel/`);
 }
 bootstrap();

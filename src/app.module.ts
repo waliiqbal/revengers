@@ -16,6 +16,7 @@ import { friendModule } from './friend/friend.module';
 import { ClanModule } from './Clan/clan.module';
 import { UploadModule } from './upload/upload.module';
 import { FirebaseAdminModule } from './firebaseAdmin/firebase-admin.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -32,8 +33,9 @@ import { FirebaseAdminModule } from './firebaseAdmin/firebase-admin.module';
     friendModule,
     gameModule,
     UploadModule,
-    FirebaseAdminModule
-   
+    FirebaseAdminModule,
+    AdminModule,
+
 
   ],
   controllers: [AppController],

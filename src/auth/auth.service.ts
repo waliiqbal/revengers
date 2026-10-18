@@ -86,8 +86,8 @@ export class AuthService {
       throw new UnauthorizedException('User not found');
     }
 
-    
-    
+    this.assertCanLogin(user);
+
     if (user.providerId) {
       throw new UnauthorizedException(
         `This account is registered using ${user.providerId} login. Use social login.`
@@ -129,6 +129,7 @@ export class AuthService {
     assists: user.assists,
     hours: user.hours,
     availableSkill: user.availableSkill,
+    role: user.role,
     token
   }
 };
@@ -157,6 +158,8 @@ async socialLogin(
     let user = await this.databaseService.repositories.userModel.findOne({ email });
 
     if (user) {
+      this.assertCanLogin(user);
+
       // 👉 Case A: User already exists with password but no socialId
       if (user.password && !user.providerId) {
         user.providerId = socialId;
@@ -202,6 +205,18 @@ async socialLogin(
     };
   } catch (error) {
     throw new UnauthorizedException(error.message || "Social login failed");
+  }
+}
+
+// banned ya admin ne remove kiya hua user login nahi kar sakta
+private assertCanLogin(user: UserDocument) {
+  if (user.isDeleted) {
+    throw new UnauthorizedException('This account has been removed');
+  }
+  if (user.isBanned) {
+    throw new UnauthorizedException(
+      user.banReason ? `Your account has been banned: ${user.banReason}` : 'Your account has been banned'
+    );
   }
 }
 

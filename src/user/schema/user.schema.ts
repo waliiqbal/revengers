@@ -60,7 +60,7 @@ export class User {
   @Prop({ default: '' })
   availableSkill?: string;
 
-@Prop({ required: false, unique: true })
+@Prop({ required: false, unique: true, sparse: true })  // sparse: email/password users ke paas providerId nahi hota
   providerId?: string;
   
   @Prop({ required: false  })
@@ -69,6 +69,25 @@ export class User {
 
   @Prop()
   password?: string;   // optional, no default
+
+  // 👇 admin panel fields
+  @Prop({ type: String, enum: ['player', 'admin'], default: 'player' })
+  role?: string;
+
+  @Prop({ default: false })
+  isBanned?: boolean;
+
+  @Prop({ default: null })
+  banReason?: string;
+
+  @Prop({ default: null })
+  bannedAt?: Date;
+
+  @Prop({ default: false })  // admin ne remove kiya (soft delete)
+  isDeleted?: boolean;
+
+  @Prop({ default: null })
+  deletedAt?: Date;
 }
   // @Prop({
   //   type: [
