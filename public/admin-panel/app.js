@@ -447,6 +447,8 @@
         ['Level', fmt(p.level)], ['Trophies', fmt(p.trophies)], ['Total XP', fmt(p.totalXp)], ['Matches', fmt(p.totalMatch)],
         ['Wins', fmt(p.won)], ['Losses', fmt(p.lost)], ['Win rate', winRate(p)], ['K/D', kd(p)],
         ['Coins', fmt(p.coin)], ['Gems', fmt(p.gem)], ['Diamonds', fmt(p.diamond)], ['Hours', fmt(p.hours)],
+        ['Story stage', `${fmt(p.storyStage)} / 7`], ['Skill points', fmt(p.skillPoints)],
+        ['Chapters done', (p.chaptersCompleted || []).length ? p.chaptersCompleted.join(', ') : '—'], ['Assists', fmt(p.assists)],
       ];
       const games = recentGames.map((g) => {
         const me = (g.players || []).find((x) => String(x.user) === String(p._id)) || {};

@@ -31,6 +31,8 @@ import { DatabaseService } from "src/database/databaseservice";
     displayPic: user.displayPic,
     level: user.level,
     trophies: user.trophies,
+    skillPoints: user.skillPoints,
+    storyStage: user.storyStage,
     currentXp: user.currentXp,
     totalXp: user.totalXp,
     gem: user.gem,

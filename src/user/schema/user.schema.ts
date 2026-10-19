@@ -39,6 +39,20 @@ export class User {
   @Prop({ default: 0 })  // ranked matches se milte hain; level inhi se badhta hai (src/game/rewards.ts)
   trophies?: number;
 
+  // 📖 story mode (src/story/story-rewards.ts)
+  @Prop({ default: 0 })  // story stages se milte hain
+  skillPoints?: number;
+
+  @Prop({ default: 0 })  // sab se aakhri clear kiya hua stage (0 = abhi koi nahi)
+  storyStage?: number;
+
+  @Prop({ type: [Number], default: [] })  // poore kiye hue chapters — ascension (2 Stars = chapter 1) ke liye
+  chaptersCompleted?: number[];
+
+  // abhi chal raha story stage (start → complete) — ek waqt me ek
+  @Prop({ type: Object, default: null })
+  storyRun?: { id: string; stage: number; startedAt: Date } | null;
+
   @Prop({ default: 0 })
   totalMatch?: number;
 

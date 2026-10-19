@@ -17,6 +17,7 @@ import { ClanModule } from './Clan/clan.module';
 import { UploadModule } from './upload/upload.module';
 import { FirebaseAdminModule } from './firebaseAdmin/firebase-admin.module';
 import { AdminModule } from './admin/admin.module';
+import { StoryModule } from './story/story.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { AdminModule } from './admin/admin.module';
     UploadModule,
     FirebaseAdminModule,
     AdminModule,
+    StoryModule,
 
 
   ],
