@@ -212,7 +212,7 @@ export class AdminService {
     const [players, total] = await Promise.all([
       this.userModel
         .find(filter)
-        .select('name email displayPic level totalXp won lost kills death assists totalMatch hours')
+        .select('name email displayPic level trophies totalXp won lost kills death assists totalMatch hours')
         .sort({ [sortBy]: -1, _id: 1 })
         .skip((page - 1) * limit)
         .limit(limit)

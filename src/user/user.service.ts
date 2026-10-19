@@ -30,6 +30,7 @@ import { DatabaseService } from "src/database/databaseservice";
     email: user.email,
     displayPic: user.displayPic,
     level: user.level,
+    trophies: user.trophies,
     currentXp: user.currentXp,
     totalXp: user.totalXp,
     gem: user.gem,

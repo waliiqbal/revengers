@@ -16,7 +16,7 @@
   };
 
   const METRIC_LABELS = {
-    totalXp: 'Total XP', level: 'Level', won: 'Wins', kills: 'Kills', totalMatch: 'Matches played', hours: 'Hours played',
+    totalXp: 'Total XP', trophies: 'Trophies', level: 'Level', won: 'Wins', kills: 'Kills', totalMatch: 'Matches played', hours: 'Hours played',
   };
 
   // ---------- small helpers ----------
@@ -61,6 +61,13 @@
     if (p.isDeleted) return 'removed';
     if (p.isBanned) return 'banned';
     return 'active';
+  }
+
+  // match history: newer matches store an outcome (won / lost / draw / left), older ones only a won flag
+  function outcomeBadge(me) {
+    const outcome = me.outcome || (me.result ? 'won' : 'lost');
+    const label = { won: 'Won', lost: 'Lost', draw: 'Draw', left: 'Left early' }[outcome] || 'Lost';
+    return `<span class="badge ${outcome === 'won' ? 'badge-win' : 'badge-loss'}">${label}</span>`;
   }
 
   function statusBadge(p) {
@@ -437,14 +444,14 @@
     try {
       const { player: p, recentGames } = (await api(`/admin/players/${id}`)).data;
       const stats = [
-        ['Level', fmt(p.level)], ['Total XP', fmt(p.totalXp)], ['Matches', fmt(p.totalMatch)], ['Win rate', winRate(p)],
-        ['Wins', fmt(p.won)], ['Losses', fmt(p.lost)], ['K/D', kd(p)], ['Hours', fmt(p.hours)],
-        ['Coins', fmt(p.coin)], ['Gems', fmt(p.gem)], ['Diamonds', fmt(p.diamond)], ['Assists', fmt(p.assists)],
+        ['Level', fmt(p.level)], ['Trophies', fmt(p.trophies)], ['Total XP', fmt(p.totalXp)], ['Matches', fmt(p.totalMatch)],
+        ['Wins', fmt(p.won)], ['Losses', fmt(p.lost)], ['Win rate', winRate(p)], ['K/D', kd(p)],
+        ['Coins', fmt(p.coin)], ['Gems', fmt(p.gem)], ['Diamonds', fmt(p.diamond)], ['Hours', fmt(p.hours)],
       ];
       const games = recentGames.map((g) => {
         const me = (g.players || []).find((x) => String(x.user) === String(p._id)) || {};
         return `<tr><td>${fmtDate(g.createdAt)}</td>
-          <td>${me.result ? '<span class="badge badge-win">Won</span>' : '<span class="badge badge-loss">Lost</span>'}</td>
+          <td>${outcomeBadge(me)}</td>
           <td class="num">${fmt(me.score)}</td><td class="num">${fmt(me.kills)} / ${fmt(me.deaths)} / ${fmt(me.assists)}</td>
           <td class="num">${(g.players || []).length}</td></tr>`;
       }).join('');
@@ -484,7 +491,7 @@
         <tr>
           <td class="num">${p.rank <= 3 ? `<span class="medal medal-${p.rank}">${p.rank}</span>` : p.rank}</td>
           <td><div class="player-cell">${avatar(p)}<span><div class="player-name">${esc(p.name || '(no name)')}</div><div class="player-email">${esc(p.email)}</div></span></div></td>
-          <td class="num">${fmt(p.level)}</td><td class="num">${fmt(p.totalXp)}</td><td class="num">${fmt(p.won)}</td>
+          <td class="num">${fmt(p.level)}</td><td class="num">${fmt(p.trophies)}</td><td class="num">${fmt(p.totalXp)}</td><td class="num">${fmt(p.won)}</td>
           <td class="num">${fmt(p.kills)}</td><td class="num">${fmt(p.totalMatch)}</td><td class="num">${fmt(p.hours)}</td>
         </tr>`).join('') : '<tr><td class="empty" colspan="8">No players yet.</td></tr>';
       renderPager('#lb-pager', pagination, 'players', (page) => { lbState.page = page; loadLeaderboard(); });

@@ -88,6 +88,7 @@
             <option value="createdAt:desc">Newest first</option>
             <option value="createdAt:asc">Oldest first</option>
             <option value="totalXp:desc">Most XP</option>
+            <option value="trophies:desc">Most trophies</option>
             <option value="level:desc">Highest level</option>
             <option value="won:desc">Most wins</option>
             <option value="kills:desc">Most kills</option>
@@ -116,6 +117,7 @@
           <div><h1>Leaderboard</h1><p class="muted">Banned and removed players are hidden.</p></div>
           <select id="lb-metric" aria-label="Rank by">
             <option value="totalXp">Total XP</option>
+            <option value="trophies">Trophies</option>
             <option value="level">Level</option>
             <option value="won">Wins</option>
             <option value="kills">Kills</option>
@@ -131,7 +133,7 @@
           <div class="table-scroll">
             <table class="table">
               <thead>
-                <tr><th class="num">Rank</th><th>Player</th><th class="num">Level</th><th class="num">XP</th><th class="num">Wins</th><th class="num">Kills</th><th class="num">Matches</th><th class="num">Hours</th></tr>
+                <tr><th class="num">Rank</th><th>Player</th><th class="num">Level</th><th class="num">Trophies</th><th class="num">XP</th><th class="num">Wins</th><th class="num">Kills</th><th class="num">Matches</th><th class="num">Hours</th></tr>
               </thead>
               <tbody id="lb-body"></tbody>
             </table>

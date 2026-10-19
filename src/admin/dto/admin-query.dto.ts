@@ -3,7 +3,7 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsIn, IsInt, IsOptional, IsString, Max, Min } from 'class-validator';
 
-export const LEADERBOARD_FIELDS = ['totalXp', 'level', 'won', 'kills', 'totalMatch', 'hours'];
+export const LEADERBOARD_FIELDS = ['totalXp', 'trophies', 'level', 'won', 'kills', 'totalMatch', 'hours'];
 export const PLAYER_SORT_FIELDS = [...LEADERBOARD_FIELDS, 'createdAt', 'name', 'email'];
 
 export class PaginationQueryDto {

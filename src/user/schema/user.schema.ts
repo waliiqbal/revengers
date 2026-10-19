@@ -36,6 +36,9 @@ export class User {
   @Prop({ default: 0 })
   coin?: number;
 
+  @Prop({ default: 0 })  // ranked matches se milte hain; level inhi se badhta hai (src/game/rewards.ts)
+  trophies?: number;
+
   @Prop({ default: 0 })
   totalMatch?: number;
 
