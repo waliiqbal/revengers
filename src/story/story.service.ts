@@ -98,8 +98,11 @@ export class StoryService {
     };
     if (finishesChapter) update.$addToSet = { chaptersCompleted: stage.chapter };
 
-    // condition storyStage = stage - 1 → do baar ek saath call ho to bhi reward ek hi baar
-    const paid = await this.userModel.updateOne({ _id: userId, storyStage: before.storyStage || 0 }, update);
+    // condition storyStage = stage - 1 → do baar ek saath call ho to bhi reward ek hi baar.
+    // Purane accounts me storyStage field hi nahi hota (null match karta hai missing field ko).
+    const previous = before.storyStage || 0;
+    const stageFilter = previous === 0 ? { $in: [0, null] } : previous;
+    const paid = await this.userModel.updateOne({ _id: userId, storyStage: stageFilter }, update);
     if (paid.modifiedCount !== 1) {
       return this.result('Stage cleared again (rewards are for the first clear only)', userId, base);
     }
