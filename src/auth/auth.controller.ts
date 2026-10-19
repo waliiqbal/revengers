@@ -35,20 +35,14 @@ export class AuthController {
   }
 
   @Post('social-login')
-  @ApiOperation({ summary: 'Login or signup user with social account' })
+  @ApiOperation({ summary: 'Login or signup with a verified Google ID token' })
   @ApiBody({ type: SocialLoginDto })
   @ApiResponse({ status: 201, description: 'Social login successfully' })
-  @ApiResponse({ status: 400, description: 'Bad request' })
+  @ApiResponse({ status: 400, description: 'Bad request / provider not supported yet' })
+  @ApiResponse({ status: 401, description: 'Invalid token or email already used by a password account' })
   async socialLogin(@Body() body: SocialLoginDto) {
-    const { authProvider, name, email, socialId, displayPic, fcmToken } = body;
+    const { authProvider, idToken, name, fcmToken } = body;
 
-    return this.authService.socialLogin(
-      authProvider,
-      name,
-      email,
-      socialId,
-      displayPic,
-      fcmToken,
-    );
+    return this.authService.socialLogin(authProvider, idToken, name, fcmToken);
   }
 }

@@ -1,32 +1,25 @@
 /* eslint-disable prettier/prettier */
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { IsIn, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class SocialLoginDto {
-  @ApiProperty({ example: 'google' })
+  @ApiProperty({ example: 'google', description: 'Only google is supported for now (apple / facebook coming later)' })
   @IsNotEmpty()
   @IsString()
+  @IsIn(['google', 'apple', 'facebook'])
   authProvider: string;
 
-  @ApiProperty({ example: 'google-user-id-123' })
+  // 🔐 Google ka signed ID token (Unity: PlayGamesPlatform.Instance.GetIdToken()).
+  // Server isko Google se verify karta hai — email / user id isi token se liye jate hain, body se nahi.
+  @ApiProperty({ example: 'eyJhbGciOiJSUzI1NiIs...' })
   @IsNotEmpty()
   @IsString()
-  socialId: string;
+  idToken: string;
 
   @ApiPropertyOptional({ example: 'Huzaifa' })
   @IsOptional()
   @IsString()
   name?: string;
-
-  @ApiPropertyOptional({ example: 'test@gmail.com' })
-  @IsOptional()
-  @IsEmail()
-  email?: string;
-
-  @ApiPropertyOptional({ example: 'https://image-url.com/profile.png' })
-  @IsOptional()
-  @IsString()
-  displayPic?: string;
 
   @ApiPropertyOptional({ example: 'firebase-fcm-token' })
   @IsOptional()
