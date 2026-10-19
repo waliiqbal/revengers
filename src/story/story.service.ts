@@ -4,12 +4,26 @@ import { randomUUID } from 'crypto';
 import { DatabaseService } from '../database/databaseservice';
 import { CompleteStageDto } from './dto/story.dto';
 import { lastStageOfChapter, STORY_RULES, STORY_STAGES } from './story-rewards';
+import { SettingsService } from '../settings/settings.service';
 
 const NO_REWARDS = { coins: 0, skillPoints: 0 };
 
 @Injectable()
 export class StoryService {
-  constructor(private databaseService: DatabaseService) {}
+  constructor(
+    private databaseService: DatabaseService,
+    private settingsService: SettingsService,
+  ) {}
+
+  // stage rewards admin dashboard (Rewards page) se
+  private async stageRewards() {
+    const story = (await this.settingsService.getRewards()).story;
+    const byStage = new Map(story.stages.map((s) => [s.stage, s]));
+    return {
+      minStageSeconds: story.minStageSeconds,
+      forStage: (stage: number) => ({ coins: byStage.get(stage)?.coins ?? 0, skillPoints: byStage.get(stage)?.skillPoints ?? 0 }),
+    };
+  }
 
   private get userModel() {
     return this.databaseService.repositories.userModel;
@@ -25,6 +39,7 @@ export class StoryService {
 
     const cleared = user.storyStage || 0;
     const lastStage = STORY_STAGES[STORY_STAGES.length - 1].stage;
+    const rewards = await this.stageRewards();
 
     return {
       message: 'Story progress',
@@ -36,6 +51,7 @@ export class StoryService {
         chaptersCompleted: user.chaptersCompleted || [],
         stages: STORY_STAGES.map((s) => ({
           ...s,
+          ...rewards.forStage(s.stage),
           cleared: s.stage <= cleared,
           unlocked: s.stage <= cleared + 1,
         })),
@@ -83,7 +99,8 @@ export class StoryService {
     if (!dto.won) {
       return this.result('Stage failed', userId, base);
     }
-    if (seconds < STORY_RULES.minStageSeconds || seconds > STORY_RULES.runExpiryMinutes * 60) {
+    const settings = await this.stageRewards();
+    if (seconds < settings.minStageSeconds || seconds > STORY_RULES.runExpiryMinutes * 60) {
       return this.result('Stage cleared, but the run was too short or too old for rewards', userId, base);
     }
     if (stage.stage !== (before.storyStage || 0) + 1) {
@@ -91,7 +108,7 @@ export class StoryService {
     }
 
     const finishesChapter = stage.stage === lastStageOfChapter(stage.chapter);
-    const rewards = { coins: stage.coins, skillPoints: stage.skillPoints };
+    const rewards = settings.forStage(stage.stage);
     const update: any = {
       $set: { storyStage: stage.stage },
       $inc: { coin: rewards.coins, skillPoints: rewards.skillPoints },

@@ -21,6 +21,8 @@ export class DatabaseService {
     private clanModel: Model<schema.ClanDocument>,
     @InjectModel(schema.clanRequest.name)
     private clanRequestModel: Model<schema.clanRequestDocument>,
+    @InjectModel(schema.Setting.name)
+    private settingModel: Model<schema.SettingDocument>,
 
      ) {}
      get repositories() {
@@ -31,7 +33,8 @@ export class DatabaseService {
       gameModel: this.gameModel,
       friendModel: this.friendModel,
       clanModel: this.clanModel,
-      clanRequestModel: this.clanRequestModel
+      clanRequestModel: this.clanRequestModel,
+      settingModel: this.settingModel,
 
         };
   }

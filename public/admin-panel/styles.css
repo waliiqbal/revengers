@@ -163,6 +163,20 @@ nav { display: grid; gap: 4px; }
 .pager { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px; border-top: 1px solid var(--border); color: var(--ink-2); }
 .pager-btns { display: flex; gap: 6px; }
 
+/* ---------- rewards ---------- */
+.head-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.rewards-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.rewards-grid .card { display: grid; gap: 12px; align-content: start; }
+.rewards-grid .card h2 { margin: 0; }
+.reward-table td, .reward-table th { padding: 8px 12px; }
+.num-input { width: 96px; text-align: right; font-variant-numeric: tabular-nums; padding: 6px 8px; }
+.num-input.changed { border-color: var(--accent); background: var(--accent-soft); }
+.num-input.invalid { border-color: var(--critical); background: var(--critical-soft); }
+.field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; }
+.field-grid label { font-weight: 500; color: var(--ink-2); }
+.field-grid .num-input { width: 100%; }
+.example { margin: 0; padding: 10px 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; color: var(--ink-2); }
+
 /* ---------- modal & toast ---------- */
 .modal { position: fixed; inset: 0; background: rgba(16, 24, 40, .35); display: grid; place-items: center; padding: 16px; z-index: 50; }
 .modal-card { background: var(--surface); border-radius: 16px; width: 100%; max-width: 520px; max-height: 90vh; overflow: auto; padding: 22px; box-shadow: 0 20px 40px rgba(16,24,40,.18); }
@@ -203,4 +217,7 @@ nav { display: grid; gap: 4px; }
   .card-wide { grid-column: auto; }
   .tiles { grid-template-columns: 1fr 1fr; }
   .detail-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 1100px) {
+  .rewards-grid { grid-template-columns: 1fr; }
 }

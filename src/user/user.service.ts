@@ -8,12 +8,14 @@ import {UpdateUserDto} from "./dto/update-user.dto"
 
 
 import { DatabaseService } from "src/database/databaseservice";
+import { SettingsService } from "../settings/settings.service";
 
  @Injectable()
  export class UsersService {
    constructor(
 
     private databaseService: DatabaseService,
+    private settingsService: SettingsService,
    ) {}
   
    async getProfile(userId: string) {
@@ -33,6 +35,7 @@ import { DatabaseService } from "src/database/databaseservice";
     trophies: user.trophies,
     skillPoints: user.skillPoints,
     storyStage: user.storyStage,
+    trophiesPerLevel: (await this.settingsService.getRewards()).match.trophiesPerLevel,  // admin badal sakta hai
     currentXp: user.currentXp,
     totalXp: user.totalXp,
     gem: user.gem,

@@ -4,6 +4,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { ConfigModule } from '@nestjs/config';
 import * as schema from './schema';
 import { DatabaseService } from './databaseservice'
+import { SettingsService } from '../settings/settings.service';
 
 @Global()
 @Module({
@@ -18,10 +19,12 @@ import { DatabaseService } from './databaseservice'
            { name: schema.Friend.name, schema: schema.FriendSchema },
             { name: schema.Clan.name, schema: schema.ClanSchema },
              { name: schema.clanRequest.name, schema: schema.clanRequestSchema },
+              { name: schema.Setting.name, schema: schema.SettingSchema },
 
     ]),
   ],
-  exports: [MongooseModule, DatabaseService],
-  providers: [DatabaseService],
+  // SettingsService: admin dashboard se badalne wale reward numbers (src/settings)
+  exports: [MongooseModule, DatabaseService, SettingsService],
+  providers: [DatabaseService, SettingsService],
 })
 export class DatabaseModule {}

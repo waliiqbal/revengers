@@ -6,6 +6,8 @@ import {
   Get,
   Param,
   Patch,
+  Post,
+  Put,
   Query,
   Req,
   UseGuards,
@@ -23,6 +25,8 @@ import { Roles } from '../auth/decorator/roles.decorator';
 import { AdminService } from './admin.service';
 import { LeaderboardQueryDto, ListPlayersQueryDto } from './dto/admin-query.dto';
 import { BanPlayerDto } from './dto/ban-player.dto';
+import { RewardSettingsDto } from './dto/reward-settings.dto';
+import { SettingsService } from '../settings/settings.service';
 
 // 🔐 is controller ke saare routes sirf admin ke liye hain
 @ApiTags('Admin')
@@ -33,7 +37,30 @@ import { BanPlayerDto } from './dto/ban-player.dto';
 @Roles('admin')
 @Controller('admin')
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly settingsService: SettingsService,
+  ) {}
+
+  // 🎁 Reward numbers (multiplayer + story) — agle match / stage se lagu hote hain
+  @Get('settings/rewards')
+  @ApiOperation({ summary: 'Current reward settings, the defaults, and who changed them last' })
+  async getRewardSettings() {
+    return { message: 'Reward settings', data: await this.settingsService.getRewardsWithMeta() };
+  }
+
+  @Put('settings/rewards')
+  @ApiOperation({ summary: 'Save reward settings (applies to the next match / story stage; past results are not changed)' })
+  @ApiBody({ type: RewardSettingsDto })
+  async saveRewardSettings(@Req() req, @Body() body: RewardSettingsDto) {
+    return { message: 'Reward settings saved', data: await this.settingsService.saveRewards(req.user.userId, body as any) };
+  }
+
+  @Post('settings/rewards/reset')
+  @ApiOperation({ summary: 'Put every reward back to its default value' })
+  async resetRewardSettings(@Req() req) {
+    return { message: 'Reward settings reset to defaults', data: await this.settingsService.resetRewards(req.user.userId) };
+  }
 
   @Get('stats')
   @ApiOperation({ summary: 'Dashboard numbers: players, bans, new signups, games' })

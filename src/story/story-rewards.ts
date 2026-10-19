@@ -1,7 +1,7 @@
 /* eslint-disable prettier/prettier */
 
 // 📖 Story mode stages + first-clear rewards. Game design document: Chapter 1 "Top Delinquents Showdown".
-// Change rewards here only. Stage numbers match the game's Level_1 … Level_7.
+// coins / skillPoints = DEFAULTS (admin can change them on the Rewards page). Stage numbers match Level_1 … Level_7.
 export interface StoryStage {
   stage: number;       // global number (Chapter 2 continues at 8)
   chapter: number;
@@ -25,9 +25,9 @@ export const STORY_STAGES: StoryStage[] = [
   { stage: 7, chapter: 1, code: '1-7', name: 'King vs Slave Part 2', boss: true, ...BOSS },
 ];
 
+// Min stage seconds aur rewards admin dashboard se badalte hain (src/settings/reward-settings.ts);
+// upar wale coins / skillPoints sirf defaults hain.
 export const STORY_RULES = {
-  // ek stage itne seconds se pehle khatam → reward nahi (cutscenes + fight)
-  minStageSeconds: Number(process.env.STORY_MIN_SECONDS ?? 15),
   // shuru kiya hua stage itni der me complete na ho → run expire
   runExpiryMinutes: 120,
 };

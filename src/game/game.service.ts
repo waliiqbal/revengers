@@ -13,7 +13,8 @@ import { Types } from 'mongoose';
 import { DatabaseService } from '../database/databaseservice';
 import { GameWonDto, StartGameDto } from './dto/match.dto';
 import { GamePlayer, Outcome, Team } from './game.schema';
-import { MATCH_RULES, mvpScore, REWARD_RULES, rewardsFor } from './rewards';
+import { MATCH_RULES, mvpScore, rewardsFor } from './rewards';
+import { SettingsService } from '../settings/settings.service';
 
 const MAINTENANCE_INTERVAL_MS = 30 * 1000;
 
@@ -22,7 +23,10 @@ export class GameService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(GameService.name);
   private timer: NodeJS.Timeout;
 
-  constructor(private databaseService: DatabaseService) {}
+  constructor(
+    private databaseService: DatabaseService,
+    private settingsService: SettingsService,
+  ) {}
 
   private get gameModel() {
     return this.databaseService.repositories.gameModel;
@@ -202,7 +206,10 @@ export class GameService implements OnModuleInit, OnModuleDestroy {
     const serverSeconds = (now.getTime() - new Date(game.createdAt).getTime()) / 1000;
 
     // bohot chhota match (test / exploit) → record karo lekin reward nahi
-    if (serverSeconds < MATCH_RULES.minSeconds) {
+    // reward numbers admin dashboard se (match finalize hote waqt jo settings hain wahi lagti hain)
+    const rules = (await this.settingsService.getRewards()).match;
+
+    if (serverSeconds < rules.minMatchSeconds) {
       await this.gameModel.updateOne(
         { _id: gameId, status: 'active' },
         { $set: { status: 'abandoned', endReason: 'too_short', endedAt: now, rewardsApplied: true, winnerTeam, teamAScore, teamBScore } },
@@ -221,7 +228,7 @@ export class GameService implements OnModuleInit, OnModuleDestroy {
       .map((p) => ({ ...p, score: mvpScore(p.kills, p.assists) }))
       .filter((p) => p.score > 0)
       .sort((a, b) => b.score - a.score || a.deaths - b.deaths || Number(b.team === winnerTeam) - Number(a.team === winnerTeam));
-    const mvpRanks = new Map(ranked.slice(0, REWARD_RULES.coins.mvp.length).map((p, i) => [p.id, i + 1]));
+    const mvpRanks = new Map(ranked.slice(0, MATCH_RULES.mvpPlaces).map((p, i) => [p.id, i + 1]));
 
     const players = game.players.map((p) => {
       const row = rows.get(p.user.toString());
@@ -239,7 +246,7 @@ export class GameService implements OnModuleInit, OnModuleDestroy {
         deaths: row?.deaths ?? 0,
         assists,
         mvpRank,
-        rewards: rewardsFor(outcome, kills, assists, mvpRank),
+        rewards: rewardsFor(outcome, kills, assists, mvpRank, rules),
       };
     });
 
@@ -267,9 +274,10 @@ export class GameService implements OnModuleInit, OnModuleDestroy {
 
   private async abandonForHostLeaving(gameId: unknown) {
     const game = await this.gameModel.findById(gameId).lean();
+    const rules = (await this.settingsService.getRewards()).match;
     const players = game.players.map((p) =>
       p.user.equals(game.hostUser)
-        ? { ...p, outcome: 'left' as Outcome, result: false, rewards: rewardsFor('left', 0, 0, 0) }
+        ? { ...p, outcome: 'left' as Outcome, result: false, rewards: rewardsFor('left', 0, 0, 0, rules) }
         : p,
     );
     const claimed = await this.gameModel.updateOne(
@@ -285,6 +293,7 @@ export class GameService implements OnModuleInit, OnModuleDestroy {
   private async applyRewards(gameId: unknown) {
     const game = await this.gameModel.findById(gameId).lean();
     if (!game || game.rewardsApplied) return;
+    const { trophiesPerLevel } = (await this.settingsService.getRewards()).match;
 
     const hours = Math.round(((game.durationSeconds || 0) / 3600) * 100) / 100;
     const add = (field: string, value: number) => ({ $add: [{ $ifNull: [`$${field}`, 0] }, value] });
@@ -318,7 +327,7 @@ export class GameService implements OnModuleInit, OnModuleDestroy {
                   level: {
                     $max: [
                       { $ifNull: ['$level', 1] },
-                      { $add: [1, { $floor: { $divide: ['$trophies', REWARD_RULES.trophiesPerLevel] } }] },
+                      { $add: [1, { $floor: { $divide: ['$trophies', trophiesPerLevel] } }] },
                     ],
                   },
                 },

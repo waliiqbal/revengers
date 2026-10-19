@@ -140,7 +140,7 @@
   $('#logout-btn').addEventListener('click', () => logout());
 
   // ---------- routing ----------
-  const views = { overview: loadOverview, players: loadPlayers, leaderboard: loadLeaderboard };
+  const views = { overview: loadOverview, players: loadPlayers, leaderboard: loadLeaderboard, rewards: loadRewards };
 
   function route() {
     const name = (location.hash || '#overview').slice(1);
@@ -503,6 +503,172 @@
   }
 
   $('#lb-metric').addEventListener('change', () => { lbState.page = 1; loadLeaderboard(); });
+
+  // ---------- rewards ----------
+  const rewardsState = { saved: null, defaults: null, stages: [] };
+  const getPath = (obj, path) => path.split('.').reduce((o, k) => (o == null ? o : o[k]), obj);
+
+  function numberInput(path, { min = 0, max = 100000 } = {}) {
+    const value = getPath(rewardsState.saved, path);
+    const def = getPath(rewardsState.defaults, path);
+    return `<input class="num-input" type="number" inputmode="numeric" min="${min}" max="${max}" step="1"
+      data-path="${path}" value="${value}" title="Default: ${def}" aria-label="${path}">`;
+  }
+
+  function rewardsMarkup() {
+    const stageRows = rewardsState.saved.story.stages.map((s, i) => {
+      const info = rewardsState.stages.find((x) => x.stage === s.stage) || {};
+      return `<tr>
+        <td><strong>${esc(info.code || s.stage)}</strong></td>
+        <td>${esc(info.name || '')} ${info.boss ? '<span class="badge badge-banned">Boss</span>' : ''}</td>
+        <td class="num">${numberInput(`story.stages.${i}.coins`)}</td>
+        <td class="num">${numberInput(`story.stages.${i}.skillPoints`, { max: 1000 })}</td>
+      </tr>`;
+    }).join('');
+
+    return `
+      <div class="card">
+        <h2>Multiplayer match result</h2>
+        <div class="table-scroll"><table class="table reward-table">
+          <thead><tr><th>Result</th><th class="num">Trophies</th><th class="num">XP</th><th class="num">Coins</th></tr></thead>
+          <tbody>
+            <tr><td>Win</td><td class="num">+ ${numberInput('match.trophies.won', { max: 1000 })}</td><td class="num">${numberInput('match.xp.won')}</td><td class="num">${numberInput('match.coins.won')}</td></tr>
+            <tr><td>Draw</td><td class="num">+ ${numberInput('match.trophies.draw', { max: 1000 })}</td><td class="num">${numberInput('match.xp.draw')}</td><td class="num">${numberInput('match.coins.draw')}</td></tr>
+            <tr><td>Loss</td><td class="num">− ${numberInput('match.trophies.lost', { max: 1000 })}</td><td class="num">${numberInput('match.xp.lost')}</td><td class="num">${numberInput('match.coins.lost')}</td></tr>
+            <tr><td>Left early / host quit</td><td class="num">− ${numberInput('match.trophies.left', { max: 1000 })}</td><td class="num muted">0</td><td class="num muted">0</td></tr>
+          </tbody>
+        </table></div>
+        <p class="muted small">Trophies never go below 0.</p>
+      </div>
+
+      <div class="card">
+        <h2>Match bonuses</h2>
+        <div class="field-grid">
+          <label>XP per kill ${numberInput('match.xp.perKill')}</label>
+          <label>XP per assist ${numberInput('match.xp.perAssist')}</label>
+          <label>Max XP per match ${numberInput('match.xp.maxPerMatch')}</label>
+          <label>MVP coins (1st) ${numberInput('match.coins.mvp1')}</label>
+          <label>2nd place coins ${numberInput('match.coins.mvp2')}</label>
+          <label>3rd place coins ${numberInput('match.coins.mvp3')}</label>
+        </div>
+        <p class="example" id="reward-example"></p>
+      </div>
+
+      <div class="card">
+        <h2>Levels &amp; rules</h2>
+        <div class="field-grid">
+          <label>Trophies per level ${numberInput('match.trophiesPerLevel', { min: 1, max: 10000 })}
+            <span class="muted small">Level = 1 + trophies ÷ this. Levels never go down.</span></label>
+          <label>Shortest match that pays (seconds) ${numberInput('match.minMatchSeconds', { max: 600 })}
+            <span class="muted small">Shorter matches give no rewards (stops quick-quit farming).</span></label>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Story mode — first clear of each stage</h2>
+        <div class="table-scroll"><table class="table reward-table">
+          <thead><tr><th>Stage</th><th>Name</th><th class="num">Coins</th><th class="num">Skill points</th></tr></thead>
+          <tbody>${stageRows}</tbody>
+        </table></div>
+        <div class="field-grid">
+          <label>Shortest stage that pays (seconds) ${numberInput('story.minStageSeconds', { max: 600 })}
+            <span class="muted small">Replays of a cleared stage give nothing.</span></label>
+        </div>
+      </div>`;
+  }
+
+  // Current form values as a settings object (numbers).
+  function readRewardsForm() {
+    const result = JSON.parse(JSON.stringify(rewardsState.saved));
+    document.querySelectorAll('#rewards-form [data-path]').forEach((input) => {
+      const keys = input.dataset.path.split('.');
+      const last = keys.pop();
+      const target = keys.reduce((o, k) => o[k], result);
+      target[last] = input.value === '' ? NaN : Number(input.value);
+    });
+    return result;
+  }
+
+  function invalidRewardInputs() {
+    return [...document.querySelectorAll('#rewards-form [data-path]')].filter((input) => {
+      const v = Number(input.value);
+      return input.value === '' || !Number.isInteger(v) || v < Number(input.min) || v > Number(input.max);
+    });
+  }
+
+  function updateRewardsUi() {
+    let dirty = false;
+    document.querySelectorAll('#rewards-form [data-path]').forEach((input) => {
+      const changed = String(getPath(rewardsState.saved, input.dataset.path)) !== input.value;
+      input.classList.toggle('changed', changed);
+      dirty = dirty || changed;
+    });
+    const invalid = invalidRewardInputs();
+    document.querySelectorAll('#rewards-form [data-path]').forEach((i) => i.classList.toggle('invalid', invalid.includes(i)));
+    $('#rewards-save').disabled = !dirty || invalid.length > 0;
+
+    // Live example so the admin sees what a typical result pays.
+    const s = readRewardsForm().match;
+    if (invalid.length) {
+      $('#reward-example').textContent = 'Fix the highlighted fields (whole numbers, 0 or more).';
+      return;
+    }
+    const xp = Math.min(s.xp.won + 3 * s.xp.perKill + 2 * s.xp.perAssist, s.xp.maxPerMatch);
+    $('#reward-example').innerHTML = `Example: a <strong>win</strong> with 3 kills and 2 assists as <strong>MVP</strong> pays
+      <strong>+${fmt(s.trophies.won)} trophies</strong>, <strong>+${fmt(xp)} XP</strong>, <strong>+${fmt(s.coins.won + s.coins.mvp1)} coins</strong>.`;
+  }
+
+  function renderRewards(data) {
+    rewardsState.saved = data.settings;
+    rewardsState.defaults = data.defaults;
+    rewardsState.stages = data.stages || [];
+    $('#rewards-form').innerHTML = rewardsMarkup();
+    $('#rewards-meta').textContent = data.updatedAt
+      ? `Last saved ${new Date(data.updatedAt).toLocaleString()}${data.updatedBy ? ` by ${data.updatedBy}` : ''}.`
+      : 'Using the default values (never changed).';
+    updateRewardsUi();
+  }
+
+  async function loadRewards() {
+    try {
+      renderRewards((await api('/admin/settings/rewards')).data);
+    } catch (err) {
+      toast(err.message, true);
+    }
+  }
+
+  $('#rewards-form').addEventListener('input', updateRewardsUi);
+
+  $('#rewards-save').addEventListener('click', async () => {
+    if (invalidRewardInputs().length) return;
+    $('#rewards-save').disabled = true;
+    try {
+      const res = await api('/admin/settings/rewards', { method: 'PUT', body: readRewardsForm() });
+      renderRewards(res.data);
+      toast('Rewards saved. They apply to the next match or stage.');
+    } catch (err) {
+      toast(err.message, true);
+      updateRewardsUi();
+    }
+  });
+
+  $('#rewards-reset').addEventListener('click', () => {
+    openModal('Reset all rewards?', `
+      <p>Every reward goes back to its default value. Results already paid out are not changed.</p>
+      <div class="modal-actions">
+        <button class="btn" data-close>Cancel</button>
+        <button class="btn btn-danger" id="rewards-reset-confirm">Reset to defaults</button>
+      </div>`);
+    $('#rewards-reset-confirm').addEventListener('click', async () => {
+      try {
+        renderRewards((await api('/admin/settings/rewards/reset', { method: 'POST' })).data);
+        closeModal();
+        toast('Rewards reset to defaults.');
+      } catch (err) {
+        toast(err.message, true);
+      }
+    });
+  });
 
   // ---------- start ----------
   if (auth.token) startApp(); else showLogin();
