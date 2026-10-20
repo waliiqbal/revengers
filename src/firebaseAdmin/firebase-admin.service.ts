@@ -39,4 +39,34 @@ export class FirebaseAdminService {
       return { success: false, error };
     }
   }
+
+  // Ek saath bohot devices ko (Firebase limit: 500 tokens per call).
+  // invalidTokens = uninstall / expired → caller DB se hata de.
+  async sendToMany(
+    tokens: string[],
+    notification: { title: string; body: string },
+    data?: { [key: string]: string },
+  ) {
+    let sent = 0;
+    let failed = 0;
+    const invalidTokens: string[] = [];
+    const DEAD = ['messaging/registration-token-not-registered', 'messaging/invalid-registration-token', 'messaging/invalid-argument'];
+
+    for (let i = 0; i < tokens.length; i += 500) {
+      const batch = tokens.slice(i, i + 500);
+      const response = await this.messaging.sendEachForMulticast({
+        tokens: batch,
+        notification,
+        data,
+        android: { priority: 'high' },
+        apns: { payload: { aps: { sound: 'default' } } },
+      });
+      sent += response.successCount;
+      failed += response.failureCount;
+      response.responses.forEach((r, index) => {
+        if (!r.success && DEAD.includes(r.error?.code)) invalidTokens.push(batch[index]);
+      });
+    }
+    return { sent, failed, invalidTokens };
+  }
 }

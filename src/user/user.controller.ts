@@ -17,6 +17,7 @@ import {
 import { AuthGuard } from '@nestjs/passport';
 import { UsersService } from './user.service';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { FcmTokenDto } from './dto/fcm-token.dto';
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -55,5 +56,14 @@ export class UsersController {
   async updateUser(@Req() req, @Body() updateUserDto: UpdateUserDto) {
     const userId = req.user.userId;
     return this.usersService.updateUserData(userId, updateUserDto);
+  }
+
+  // 🔔 Firebase device token — game login ke baad aur token badalne pe bhejta hai (push notifications ke liye)
+  @Post('fcm-token')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiOperation({ summary: 'Save the device push token (Firebase Cloud Messaging) for the logged-in player' })
+  @ApiBody({ type: FcmTokenDto })
+  async saveFcmToken(@Req() req, @Body() body: FcmTokenDto) {
+    return this.usersService.saveFcmToken(req.user.userId, body.fcmToken);
   }
 }

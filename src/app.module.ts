@@ -18,6 +18,7 @@ import { UploadModule } from './upload/upload.module';
 import { FirebaseAdminModule } from './firebaseAdmin/firebase-admin.module';
 import { AdminModule } from './admin/admin.module';
 import { StoryModule } from './story/story.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { StoryModule } from './story/story.module';
     FirebaseAdminModule,
     AdminModule,
     StoryModule,
+    NotificationsModule,
 
 
   ],

@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Revengers Admin</title>
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css?v=2026102001" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
@@ -33,6 +33,9 @@
         </a>
         <a href="#leaderboard" data-view="leaderboard" class="nav-link">
           <svg viewBox="0 0 24 24"><path d="M7 21H3v-8h4zm7 0h-4V3h4zm7 0h-4v-12h4z"/></svg> Leaderboard
+        </a>
+        <a href="#notifications" data-view="notifications" class="nav-link">
+          <svg viewBox="0 0 24 24"><path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22zm7-6V11a7 7 0 0 0-5.5-6.84V3.5a1.5 1.5 0 0 0-3 0v.66A7 7 0 0 0 5 11v5l-2 2v1h18v-1z"/></svg> Notifications
         </a>
         <a href="#rewards" data-view="rewards" class="nav-link">
           <svg viewBox="0 0 24 24"><path d="M20 7h-2.2A3 3 0 0 0 12 3.8 3 3 0 0 0 6.2 7H4a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-8h1a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1zM15 5a1 1 0 1 1 0 2h-2a2 2 0 0 1 2-2zM9 5a2 2 0 0 1 2 2H9a1 1 0 1 1 0-2zm2 15H7v-8h4zm0-10H5V9h6zm6 10h-4v-8h4zm2-10h-6V9h6z"/></svg> Rewards
@@ -145,6 +148,66 @@
         </div>
       </section>
 
+      <!-- Notifications -->
+      <section id="view-notifications" class="view" hidden>
+        <header class="page-head">
+          <div><h1>Notifications</h1><p class="muted">Send a push notification or an email to your players.</p></div>
+        </header>
+        <div id="notify-status" class="tiles"></div>
+
+        <div class="notify-layout">
+          <form id="notify-form" class="card notify-form" autocomplete="off" novalidate>
+            <div class="segmented" role="radiogroup" aria-label="Type">
+              <button type="button" data-channel="push" class="active" aria-pressed="true">Push notification</button>
+              <button type="button" data-channel="email" aria-pressed="false">Email</button>
+            </div>
+            <div id="email-setup" class="setup-note" hidden>
+              <strong>Email isn't set up yet.</strong> Add these to the server's <code>.env</code> and restart the backend:
+              <code>SMTP_HOST</code>, <code>SMTP_PORT</code>, <code>SMTP_USER</code>, <code>SMTP_PASS</code>, <code>SMTP_FROM</code>.
+            </div>
+
+            <div class="field">
+              <span class="field-label">Send to</span>
+              <div class="radio-row">
+                <label class="radio"><input type="radio" name="audience" value="all" checked> All players</label>
+                <label class="radio"><input type="radio" name="audience" value="players"> Choose players</label>
+              </div>
+            </div>
+            <div id="pick-players" class="field" hidden>
+              <input id="notify-search" type="search" placeholder="Search players by name or email…">
+              <div id="notify-results" class="pick-results"></div>
+              <div id="notify-chips" class="chips"></div>
+            </div>
+
+            <label class="field"><span class="field-label"><span id="title-label">Title</span> <span class="muted small" id="title-count">0/120</span></span>
+              <input id="notify-title" maxlength="120" placeholder="e.g. Double coins this weekend!"></label>
+            <label class="field"><span class="field-label">Message <span class="muted small" id="body-count">0/3000</span></span>
+              <textarea id="notify-body" maxlength="3000" rows="5" placeholder="Write your message…"></textarea></label>
+
+            <div class="notify-footer">
+              <span id="notify-reach" class="muted"></span>
+              <button id="notify-send" class="btn btn-primary" type="button" disabled>Send</button>
+            </div>
+          </form>
+
+          <div class="card notify-preview-card">
+            <h2>Preview</h2>
+            <div id="notify-preview"></div>
+          </div>
+        </div>
+
+        <div class="card table-card">
+          <div class="table-head"><h2>Sent</h2><button class="btn btn-ghost btn-sm" id="notify-refresh" type="button">Refresh</button></div>
+          <div class="table-scroll">
+            <table class="table">
+              <thead><tr><th>When</th><th>Type</th><th>Title</th><th>To</th><th class="num">Delivered</th><th>Status</th><th>By</th></tr></thead>
+              <tbody id="notify-history"></tbody>
+            </table>
+          </div>
+          <div id="notify-pager" class="pager"></div>
+        </div>
+      </section>
+
       <!-- Rewards -->
       <section id="view-rewards" class="view" hidden>
         <header class="page-head">
@@ -172,6 +235,6 @@
   </div>
   <div id="toast" class="toast" hidden></div>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=2026102002"></script>
 </body>
 </html>

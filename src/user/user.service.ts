@@ -53,6 +53,16 @@ import { SettingsService } from "../settings/settings.service";
   }
 };
 }
+// ek device token ek hi player ka — dusre account pe same phone login ho to purane se hata do
+async saveFcmToken(userId: string, fcmToken: string) {
+  await this.databaseService.repositories.userModel.updateMany(
+    { fcmToken, _id: { $ne: userId } },
+    { $set: { fcmToken: null } },
+  );
+  await this.databaseService.repositories.userModel.updateOne({ _id: userId }, { $set: { fcmToken } });
+  return { message: 'Push token saved', data: { saved: true } };
+}
+
 async updateUserData(userId: string, dto: UpdateUserDto) {
   const updatedUser = await this.databaseService.repositories.userModel.findByIdAndUpdate(
     userId,

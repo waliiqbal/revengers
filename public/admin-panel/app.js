@@ -140,7 +140,7 @@
   $('#logout-btn').addEventListener('click', () => logout());
 
   // ---------- routing ----------
-  const views = { overview: loadOverview, players: loadPlayers, leaderboard: loadLeaderboard, rewards: loadRewards };
+  const views = { overview: loadOverview, players: loadPlayers, leaderboard: loadLeaderboard, notifications: loadNotifications, rewards: loadRewards };
 
   function route() {
     const name = (location.hash || '#overview').slice(1);
@@ -503,6 +503,209 @@
   }
 
   $('#lb-metric').addEventListener('change', () => { lbState.page = 1; loadLeaderboard(); });
+
+  // ---------- notifications ----------
+  const notifyState = { channel: 'push', audience: 'all', selected: new Map(), status: null, historyPage: 1, pollTimer: null };
+
+  async function loadNotifications() {
+    try {
+      notifyState.status = (await api('/admin/notifications/status')).data;
+      renderNotifyStatus();
+      renderNotifyForm();
+      updateReach();
+      loadNotifyHistory();
+    } catch (err) {
+      toast(err.message, true);
+    }
+  }
+
+  function renderNotifyStatus() {
+    const s = notifyState.status;
+    $('#notify-status').innerHTML = `
+      <div class="tile">
+        <div class="tile-label"><span class="dot" style="background:${COLORS.good}"></span>Push notifications</div>
+        <div class="tile-value">${fmt(s.push.players)}</div>
+        <div class="tile-sub">of ${fmt(s.totalPlayers)} players can receive them</div>
+      </div>
+      <div class="tile">
+        <div class="tile-label"><span class="dot" style="background:${s.email.configured ? COLORS.good : COLORS.neutral}"></span>Email</div>
+        <div class="tile-value">${s.email.configured ? fmt(s.email.players) : 'Not set up'}</div>
+        <div class="tile-sub">${s.email.configured ? `sent from ${esc(s.email.from)}` : 'add SMTP settings to the server'}</div>
+      </div>`;
+  }
+
+  function renderNotifyForm() {
+    const isEmail = notifyState.channel === 'email';
+    document.querySelectorAll('.segmented [data-channel]').forEach((b) => {
+      const on = b.dataset.channel === notifyState.channel;
+      b.classList.toggle('active', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+    $('#email-setup').hidden = !(isEmail && notifyState.status && !notifyState.status.email.configured);
+    $('#title-label').textContent = isEmail ? 'Subject' : 'Title';
+    $('#pick-players').hidden = notifyState.audience !== 'players';
+    $('#notify-chips').innerHTML = [...notifyState.selected].map(([id, name]) =>
+      `<span class="chip">${esc(name)}<button type="button" data-remove="${id}" aria-label="Remove ${esc(name)}">×</button></span>`).join('');
+    $('#title-count').textContent = `${$('#notify-title').value.length}/120`;
+    $('#body-count').textContent = `${$('#notify-body').value.length}/3000`;
+    renderNotifyPreview();
+    updateSendButton();
+  }
+
+  function renderNotifyPreview() {
+    const title = $('#notify-title').value.trim() || (notifyState.channel === 'email' ? 'Subject' : 'Title');
+    const body = $('#notify-body').value.trim() || 'Your message will appear here.';
+    $('#notify-preview').innerHTML = notifyState.channel === 'push'
+      ? `<div class="phone"><div class="push-bubble">
+          <div class="app-icon">R</div>
+          <div class="push-meta"><span>Tokyo Revengers</span><span>now</span></div>
+          <div class="push-title">${esc(title)}</div>
+          <div class="push-body" style="grid-column:2">${esc(body)}</div>
+        </div></div>
+        <p class="muted small">How it looks on a phone. Long messages are cut off on the lock screen.</p>`
+      : `<div class="email-preview">
+          <div class="email-head"><strong>${esc(title)}</strong><br>From: ${esc(notifyState.status?.email.from || 'your SMTP address')}</div>
+          <div class="email-body">Hi Player,\n\n${esc(body)}\n\n— Tokyo Revengers</div>
+        </div>
+        <p class="muted small">Every player gets their own email, so nobody sees other players' addresses.</p>`;
+  }
+
+  function notifyAudienceBody() {
+    return { channel: notifyState.channel, audience: notifyState.audience, userIds: notifyState.audience === 'players' ? [...notifyState.selected.keys()] : undefined };
+  }
+
+  const updateReach = debounce(async () => {
+    const reach = $('#notify-reach');
+    if (notifyState.audience === 'players' && !notifyState.selected.size) {
+      reach.textContent = 'Pick at least one player.';
+      notifyState.reachable = 0;
+      updateSendButton();
+      return;
+    }
+    try {
+      const { targeted, reachable } = (await api('/admin/notifications/preview', { method: 'POST', body: notifyAudienceBody() })).data;
+      notifyState.reachable = reachable;
+      const missing = targeted - reachable;
+      const why = notifyState.channel === 'push' ? 'push notifications turned on yet' : 'an email address';
+      reach.textContent = `Will reach ${fmt(reachable)} of ${fmt(targeted)} player${targeted === 1 ? '' : 's'}.`
+        + (missing > 0 ? ` ${fmt(missing)} ${missing === 1 ? "doesn't" : "don't"} have ${why}.` : '');
+    } catch (err) {
+      reach.textContent = err.message;
+      notifyState.reachable = 0;
+    }
+    updateSendButton();
+  }, 250);
+
+  function updateSendButton() {
+    const blockedEmail = notifyState.channel === 'email' && notifyState.status && !notifyState.status.email.configured;
+    const ready = $('#notify-title').value.trim() && $('#notify-body').value.trim() && notifyState.reachable > 0 && !blockedEmail;
+    $('#notify-send').disabled = !ready;
+    $('#notify-send').textContent = notifyState.channel === 'push' ? 'Send push notification' : 'Send email';
+  }
+
+  document.querySelectorAll('.segmented [data-channel]').forEach((b) => b.addEventListener('click', () => {
+    notifyState.channel = b.dataset.channel;
+    renderNotifyForm();
+    updateReach();
+  }));
+  document.querySelectorAll('input[name="audience"]').forEach((r) => r.addEventListener('change', () => {
+    notifyState.audience = r.value;
+    renderNotifyForm();
+    updateReach();
+  }));
+  ['#notify-title', '#notify-body'].forEach((sel) => $(sel).addEventListener('input', renderNotifyForm));
+
+  $('#notify-search').addEventListener('input', debounce(async () => {
+    const q = $('#notify-search').value.trim();
+    if (!q) { $('#notify-results').innerHTML = ''; return; }
+    try {
+      const { players } = (await api(`/admin/players?search=${encodeURIComponent(q)}&limit=8&status=active`)).data;
+      $('#notify-results').innerHTML = players.length ? players.map((p) => `
+        <button type="button" data-add="${p._id}" data-name="${esc(p.name || p.email)}" ${notifyState.selected.has(p._id) ? 'disabled' : ''}>
+          ${avatar(p)}<span><div class="player-name">${esc(p.name || '(no name)')}</div><div class="player-email">${esc(p.email)}</div></span>
+        </button>`).join('') : '<p class="muted small">No active players found.</p>';
+    } catch (err) {
+      toast(err.message, true);
+    }
+  }, 300));
+
+  $('#notify-results').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-add]');
+    if (!btn) return;
+    notifyState.selected.set(btn.dataset.add, btn.dataset.name);
+    btn.disabled = true;
+    renderNotifyForm();
+    updateReach();
+  });
+  $('#notify-chips').addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-remove]');
+    if (!btn) return;
+    notifyState.selected.delete(btn.dataset.remove);
+    renderNotifyForm();
+    updateReach();
+  });
+
+  $('#notify-send').addEventListener('click', () => {
+    const kind = notifyState.channel === 'push' ? 'push notification' : 'email';
+    openModal(`Send ${kind}?`, `
+      <p>This sends <strong>"${esc($('#notify-title').value.trim())}"</strong> to <strong>${fmt(notifyState.reachable)}</strong> player${notifyState.reachable === 1 ? '' : 's'} right now. It can't be undone.</p>
+      <div class="modal-actions">
+        <button class="btn" data-close>Cancel</button>
+        <button class="btn btn-primary" id="notify-confirm">Send ${kind}</button>
+      </div>`);
+    $('#notify-confirm').addEventListener('click', async () => {
+      $('#notify-confirm').disabled = true;
+      try {
+        await api('/admin/notifications/send', {
+          method: 'POST',
+          body: { ...notifyAudienceBody(), title: $('#notify-title').value.trim(), body: $('#notify-body').value.trim() },
+        });
+        closeModal();
+        toast(`Sending your ${kind}…`);
+        $('#notify-title').value = '';
+        $('#notify-body').value = '';
+        renderNotifyForm();
+        notifyState.historyPage = 1;
+        loadNotifyHistory();
+      } catch (err) {
+        closeModal();
+        toast(err.message, true);
+      }
+    });
+  });
+
+  async function loadNotifyHistory() {
+    clearTimeout(notifyState.pollTimer);
+    try {
+      const { items, pagination } = (await api(`/admin/notifications/history?page=${notifyState.historyPage}&limit=10`)).data;
+      $('#notify-history').innerHTML = items.length ? items.map((n) => {
+        const status = n.status === 'sending'
+          ? '<span class="badge badge-sending">Sending…</span>'
+          : n.status === 'failed'
+            ? `<span class="badge badge-banned" title="${esc(n.error || '')}">Failed</span>`
+            : `<span class="badge badge-active">Sent</span>`;
+        const to = n.audience === 'all' ? 'All players' : `${fmt(n.players)} chosen`;
+        return `<tr>
+          <td>${new Date(n.createdAt).toLocaleString()}</td>
+          <td>${n.channel === 'push' ? 'Push' : 'Email'}</td>
+          <td title="${esc(n.body)}">${esc(n.title)}</td>
+          <td>${to}</td>
+          <td class="num">${fmt(n.sent)} / ${fmt(n.reachable)}${n.failed ? ` <span class="muted small">(${fmt(n.failed)} failed)</span>` : ''}</td>
+          <td>${status}</td>
+          <td>${esc(n.sentBy || '—')}</td>
+        </tr>`;
+      }).join('') : '<tr><td class="empty" colspan="7">Nothing sent yet.</td></tr>';
+      renderPager('#notify-pager', pagination, 'sent', (page) => { notifyState.historyPage = page; loadNotifyHistory(); });
+
+      // keep refreshing while something is still being sent
+      if (items.some((n) => n.status === 'sending') && location.hash === '#notifications') {
+        notifyState.pollTimer = setTimeout(loadNotifyHistory, 3000);
+      }
+    } catch (err) {
+      toast(err.message, true);
+    }
+  }
+  $('#notify-refresh').addEventListener('click', loadNotifyHistory);
 
   // ---------- rewards ----------
   const rewardsState = { saved: null, defaults: null, stages: [] };
