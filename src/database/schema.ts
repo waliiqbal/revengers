@@ -8,3 +8,4 @@ export { Clan, ClanDocument, ClanSchema } from '../Clan/clan.schema';
 export { clanRequest, clanRequestDocument, clanRequestSchema } from '../Clan/clanRequest.schema'
 export { Setting, SettingDocument, SettingSchema } from '../settings/setting.schema';
 export { NotificationLog, NotificationLogDocument, NotificationLogSchema } from '../notifications/notification.schema';
+export { SupportTicket, SupportTicketDocument, SupportTicketSchema } from '../support/support-ticket.schema';

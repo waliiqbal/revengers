@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Revengers Admin</title>
-  <link rel="stylesheet" href="styles.css?v=2026102001" />
+  <link rel="stylesheet" href="styles.css?v=2026102802" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
@@ -39,6 +39,10 @@
         </a>
         <a href="#rewards" data-view="rewards" class="nav-link">
           <svg viewBox="0 0 24 24"><path d="M20 7h-2.2A3 3 0 0 0 12 3.8 3 3 0 0 0 6.2 7H4a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h1v8a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-8h1a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1zM15 5a1 1 0 1 1 0 2h-2a2 2 0 0 1 2-2zM9 5a2 2 0 0 1 2 2H9a1 1 0 1 1 0-2zm2 15H7v-8h4zm0-10H5V9h6zm6 10h-4v-8h4zm2-10h-6V9h6z"/></svg> Rewards
+        </a>
+        <a href="#support" data-view="support" class="nav-link">
+          <svg viewBox="0 0 24 24"><path d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm-7 12h-2v-2h2zm0-4h-2V6h2z"/></svg> Support
+          <span id="support-count" class="nav-count" hidden></span>
         </a>
       </nav>
       <div class="sidebar-foot">
@@ -223,6 +227,46 @@
         <p id="rewards-meta" class="muted small"></p>
         <form id="rewards-form" class="rewards-grid" autocomplete="off" novalidate></form>
       </section>
+
+      <!-- Support -->
+      <section id="view-support" class="view" hidden>
+        <header class="page-head">
+          <div><h1>Support</h1><p class="muted">Feedback, bug reports and help requests sent from the game. Players see your replies in the game.</p></div>
+          <button class="btn btn-ghost" data-refresh>Refresh</button>
+        </header>
+        <div id="support-tiles" class="tiles"></div>
+        <div class="toolbar card">
+          <input id="support-search" type="search" placeholder="Search subject, player, email or TR-code…" />
+          <select id="support-status" aria-label="Status">
+            <option value="active">Needs attention (open + in progress)</option>
+            <option value="open">Open</option>
+            <option value="in_progress">In progress</option>
+            <option value="resolved">Resolved</option>
+            <option value="closed">Closed</option>
+            <option value="all">All</option>
+          </select>
+          <select id="support-category" aria-label="Category">
+            <option value="all">All categories</option>
+            <option value="bug">Bug report</option>
+            <option value="feedback">Feedback / idea</option>
+            <option value="account">Account / login</option>
+            <option value="payment">Payment / purchase</option>
+            <option value="report_player">Report a player</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        <div class="card table-card">
+          <div class="table-scroll">
+            <table class="table">
+              <thead>
+                <tr><th>Ticket</th><th>Player</th><th>Category</th><th>Last message</th><th>Updated</th><th>Status</th></tr>
+              </thead>
+              <tbody id="support-body"></tbody>
+            </table>
+          </div>
+          <div id="support-pager" class="pager"></div>
+        </div>
+      </section>
     </main>
   </div>
 
@@ -235,6 +279,6 @@
   </div>
   <div id="toast" class="toast" hidden></div>
 
-  <script src="app.js?v=2026102002"></script>
+  <script src="app.js?v=2026102802"></script>
 </body>
 </html>

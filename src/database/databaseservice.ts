@@ -25,6 +25,8 @@ export class DatabaseService {
     private settingModel: Model<schema.SettingDocument>,
     @InjectModel(schema.NotificationLog.name)
     private notificationModel: Model<schema.NotificationLogDocument>,
+    @InjectModel(schema.SupportTicket.name)
+    private supportTicketModel: Model<schema.SupportTicketDocument>,
 
      ) {}
      get repositories() {
@@ -38,6 +40,7 @@ export class DatabaseService {
       clanRequestModel: this.clanRequestModel,
       settingModel: this.settingModel,
       notificationModel: this.notificationModel,
+      supportTicketModel: this.supportTicketModel,
 
         };
   }

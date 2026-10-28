@@ -140,7 +140,7 @@
   $('#logout-btn').addEventListener('click', () => logout());
 
   // ---------- routing ----------
-  const views = { overview: loadOverview, players: loadPlayers, leaderboard: loadLeaderboard, notifications: loadNotifications, rewards: loadRewards };
+  const views = { overview: loadOverview, players: loadPlayers, leaderboard: loadLeaderboard, notifications: loadNotifications, rewards: loadRewards, support: loadSupport };
 
   function route() {
     const name = (location.hash || '#overview').slice(1);
@@ -155,6 +155,7 @@
     $('#app-view').hidden = false;
     $('#admin-email').textContent = auth.email || '';
     route();
+    refreshSupportCount();
   }
 
   window.addEventListener('hashchange', () => { if (auth.token) route(); });
@@ -872,6 +873,155 @@
       }
     });
   });
+
+  // ---------- support ----------
+  const CATEGORY_LABELS = {
+    bug: 'Bug report', feedback: 'Feedback / idea', account: 'Account / login',
+    payment: 'Payment / purchase', report_player: 'Report a player', other: 'Other',
+  };
+  const STATUS_LABELS = { open: 'Open', in_progress: 'In progress', resolved: 'Resolved', closed: 'Closed' };
+  const supportState = { page: 1, limit: 20 };
+
+  const fmtDateTime = (d) => (d ? new Date(d).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—');
+  const ticketStatus = (s) => `<span class="badge badge-${esc(s)}">${STATUS_LABELS[s] || esc(s)}</span>`;
+
+  // sidebar me laal number: kitne tickets pe player ka naya message hai
+  async function refreshSupportCount() {
+    try {
+      const { data } = await api('/admin/support/stats');
+      const el = $('#support-count');
+      el.textContent = data.unread > 99 ? '99+' : data.unread;
+      el.hidden = !data.unread;
+      return data;
+    } catch {
+      return null;
+    }
+  }
+
+  async function loadSupport() {
+    const params = new URLSearchParams({
+      page: supportState.page, limit: supportState.limit,
+      status: $('#support-status').value, category: $('#support-category').value,
+    });
+    const search = $('#support-search').value.trim();
+    if (search) params.set('search', search);
+
+    try {
+      const [stats, res] = await Promise.all([refreshSupportCount(), api(`/admin/support/tickets?${params}`)]);
+      if (stats) {
+        const tiles = [
+          { label: 'Waiting for reply', value: stats.unread, dot: COLORS.critical, sub: 'new player messages' },
+          { label: 'Open', value: stats.open, sub: 'not answered yet' },
+          { label: 'In progress', value: stats.inProgress, sub: 'being handled' },
+          { label: 'Resolved', value: stats.resolved, dot: COLORS.good, sub: `${fmt(stats.closed)} closed` },
+        ];
+        $('#support-tiles').innerHTML = tiles.map((t) => `
+          <div class="tile">
+            <div class="tile-label">${t.dot ? `<span class="dot" style="background:${t.dot}"></span>` : ''}${t.label}</div>
+            <div class="tile-value">${fmt(t.value)}</div>
+            <div class="tile-sub">${t.sub}</div>
+          </div>`).join('');
+      }
+
+      const { tickets, pagination } = res.data;
+      $('#support-body').innerHTML = tickets.length ? tickets.map((t) => `
+        <tr class="ticket-row ${t.unread ? 'unread' : ''}" data-id="${esc(t._id)}">
+          <td><div class="ticket-code">${esc(t.code)}</div><div class="ticket-subject">${esc(t.subject)}</div></td>
+          <td><div class="player-name">${esc(t.playerName || '(no name)')}</div><div class="player-email">${esc(t.playerEmail)}</div></td>
+          <td>${CATEGORY_LABELS[t.category] || esc(t.category)}</td>
+          <td><div class="ticket-preview">${t.lastMessageFrom === 'admin' ? '<span class="muted">You: </span>' : ''}${esc(t.lastMessage)}</div></td>
+          <td>${fmtDateTime(t.lastMessageAt)}</td>
+          <td>${ticketStatus(t.status)}</td>
+        </tr>`).join('') : '<tr><td class="empty" colspan="6">No support requests here. 🎉</td></tr>';
+      renderPager('#support-pager', pagination, 'tickets', (page) => { supportState.page = page; loadSupport(); });
+    } catch (err) {
+      toast(err.message, true);
+    }
+  }
+
+  $('#support-search').addEventListener('input', debounce(() => { supportState.page = 1; loadSupport(); }, 300));
+  $('#support-status').addEventListener('change', () => { supportState.page = 1; loadSupport(); });
+  $('#support-category').addEventListener('change', () => { supportState.page = 1; loadSupport(); });
+  $('#support-body').addEventListener('click', (e) => {
+    const row = e.target.closest('.ticket-row');
+    if (row) showTicket(row.dataset.id);
+  });
+
+  async function showTicket(id) {
+    try {
+      const t = (await api(`/admin/support/tickets/${id}`)).data;
+      const p = t.player || {};
+      const device = [t.platform, t.deviceModel, t.appVersion && `v${t.appVersion}`].filter(Boolean).map(esc).join(' · ') || '—';
+      const playerStatus = p.isDeleted ? ' <span class="badge badge-removed">Removed</span>' : p.isBanned ? ' <span class="badge badge-banned">Banned</span>' : '';
+
+      openModal(`${t.code} · ${t.subject}`, `
+        <div class="ticket-meta">
+          <span>Player <strong>${esc(t.playerName || p.name || '(no name)')}</strong> ${esc(t.playerEmail)}${playerStatus}</span>
+          <span>Category <strong>${CATEGORY_LABELS[t.category] || esc(t.category)}</strong></span>
+          <span>Status ${ticketStatus(t.status)}</span>
+          <span>Device <strong>${device}</strong></span>
+          <span>Opened <strong>${fmtDateTime(t.createdAt)}</strong></span>
+        </div>
+        <div class="thread" id="ticket-thread">
+          ${(t.messages || []).map((m) => `
+            <div class="msg ${m.from === 'admin' ? 'msg-admin' : 'msg-player'}">
+              <div class="msg-head">${m.from === 'admin' ? 'Support team' : esc(t.playerName || 'Player')} · ${fmtDateTime(m.createdAt)}</div>
+              <div class="msg-text">${esc(m.text)}</div>
+            </div>`).join('')}
+        </div>
+        <div class="reply-box">
+          <textarea id="ticket-reply" maxlength="2000" placeholder="Write a reply to the player… (they'll see it in the game)"></textarea>
+          <div class="reply-actions">
+            <div class="left">
+              <label class="muted small" for="ticket-next-status">After sending, mark as</label>
+              <select id="ticket-next-status">
+                <option value="">${t.status === 'open' ? 'In progress' : 'Keep ' + (STATUS_LABELS[t.status] || t.status)}</option>
+                <option value="resolved">Resolved</option>
+                <option value="closed">Closed</option>
+              </select>
+            </div>
+            <div class="right">
+              ${t.status === 'closed' || t.status === 'resolved'
+                ? `<button class="btn btn-sm" data-ticket-status="open">Reopen</button>`
+                : `<button class="btn btn-sm" data-ticket-status="resolved">Mark resolved</button><button class="btn btn-sm" data-ticket-status="closed">Close</button>`}
+              <button class="btn btn-primary" id="ticket-send">Send reply</button>
+            </div>
+          </div>
+        </div>`, true);
+
+      const thread = $('#ticket-thread');
+      thread.scrollTop = thread.scrollHeight;
+      refreshSupportCount();
+
+      $('#ticket-send').addEventListener('click', async (e) => {
+        const message = $('#ticket-reply').value.trim();
+        if (!message) { toast('Write a reply first', true); return; }
+        e.target.disabled = true;
+        try {
+          const status = $('#ticket-next-status').value || undefined;
+          await api(`/admin/support/tickets/${id}/reply`, { method: 'POST', body: { message, status } });
+          toast('Reply sent to the player');
+          showTicket(id);
+          loadSupport();
+        } catch (err) {
+          toast(err.message, true);
+          e.target.disabled = false;
+        }
+      });
+      document.querySelectorAll('[data-ticket-status]').forEach((b) => b.addEventListener('click', async () => {
+        try {
+          await api(`/admin/support/tickets/${id}/status`, { method: 'PATCH', body: { status: b.dataset.ticketStatus } });
+          toast(`Ticket marked ${STATUS_LABELS[b.dataset.ticketStatus].toLowerCase()}`);
+          showTicket(id);
+          loadSupport();
+        } catch (err) {
+          toast(err.message, true);
+        }
+      }));
+    } catch (err) {
+      toast(err.message, true);
+    }
+  }
 
   // ---------- start ----------
   if (auth.token) startApp(); else showLogin();

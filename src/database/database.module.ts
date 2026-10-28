@@ -21,6 +21,7 @@ import { SettingsService } from '../settings/settings.service';
              { name: schema.clanRequest.name, schema: schema.clanRequestSchema },
               { name: schema.Setting.name, schema: schema.SettingSchema },
                { name: schema.NotificationLog.name, schema: schema.NotificationLogSchema },
+                { name: schema.SupportTicket.name, schema: schema.SupportTicketSchema },
 
     ]),
   ],

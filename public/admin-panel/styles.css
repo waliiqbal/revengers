@@ -261,3 +261,30 @@ nav { display: grid; gap: 4px; }
   .rewards-grid { grid-template-columns: 1fr; }
   .notify-layout { grid-template-columns: 1fr; }
 }
+
+/* ---------- support ---------- */
+.nav-count {
+  margin-left: auto; min-width: 20px; height: 20px; padding: 0 6px; border-radius: 999px;
+  background: var(--critical); color: #fff; font-size: 11px; font-weight: 700; display: inline-grid; place-items: center;
+}
+.badge-open { background: var(--accent-soft); color: var(--accent); }
+.badge-in_progress { background: #fdf3dc; color: #8a5a00; }
+.badge-resolved { background: var(--good-soft); color: var(--good-ink); }
+.badge-closed { background: var(--neutral-soft); color: var(--ink-2); }
+.ticket-row { cursor: pointer; }
+.ticket-row.unread td { font-weight: 600; }
+.ticket-row.unread .ticket-code::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--critical); margin-right: 6px; vertical-align: middle; }
+.ticket-code { font-variant-numeric: tabular-nums; color: var(--ink-2); font-size: 12px; }
+.ticket-subject { font-weight: 600; max-width: 280px; overflow: hidden; text-overflow: ellipsis; }
+.ticket-preview { color: var(--muted); max-width: 300px; overflow: hidden; text-overflow: ellipsis; }
+.ticket-meta { display: flex; flex-wrap: wrap; gap: 6px 16px; color: var(--ink-2); font-size: 13px; margin-bottom: 14px; }
+.ticket-meta strong { color: var(--ink); font-weight: 600; }
+.thread { display: grid; gap: 10px; max-height: 46vh; overflow-y: auto; padding: 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; }
+.msg { max-width: 82%; padding: 10px 12px; border-radius: 12px; word-break: break-word; }
+.msg-text { white-space: pre-wrap; }
+.msg-player { background: var(--surface); border: 1px solid var(--border); justify-self: start; }
+.msg-admin { background: var(--accent-soft); justify-self: end; }
+.msg-head { font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+.reply-box { display: grid; gap: 10px; margin-top: 14px; }
+.reply-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.reply-actions .left, .reply-actions .right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }

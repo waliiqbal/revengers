@@ -19,6 +19,7 @@ import { FirebaseAdminModule } from './firebaseAdmin/firebase-admin.module';
 import { AdminModule } from './admin/admin.module';
 import { StoryModule } from './story/story.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { SupportModule } from './support/support.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { NotificationsModule } from './notifications/notifications.module';
     AdminModule,
     StoryModule,
     NotificationsModule,
+    SupportModule,
 
 
   ],
