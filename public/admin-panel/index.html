@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Revengers Admin</title>
-  <link rel="stylesheet" href="styles.css?v=2026102903" />
+  <link rel="stylesheet" href="styles.css?v=2026102904" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
@@ -245,6 +245,22 @@
         <p id="store-meta" class="muted small"></p>
         <div id="store-sections" class="store-sections"></div>
 
+        <div class="card" id="unlock-card">
+          <h2>Characters <span class="muted small">locked characters are unlocked on the Select a Character screen</span></h2>
+          <div class="table-scroll"><table class="table store-table">
+            <thead><tr><th class="col-slot">#</th><th>Character</th><th class="col-num">Unlock price</th><th class="col-num">Paid with</th><th>In the game</th></tr></thead>
+            <tbody id="unlock-body"></tbody>
+          </table></div>
+          <div class="section-foot">
+            <p class="note">Price 0 = free for everyone. Players keep characters they already unlocked if you raise a price later. The document says characters are bought with coins; you can switch any character to Coins here.</p>
+            <div class="head-actions">
+              <button class="btn btn-ghost" id="unlock-reset" type="button">Reset (first free, others 200 gems)</button>
+              <button class="btn btn-primary" id="unlock-save" type="button" disabled>Save characters</button>
+            </div>
+          </div>
+          <p id="unlock-meta" class="muted small"></p>
+        </div>
+
         <div class="card" id="ascension-card">
           <h2>Character upgrades (stars) <span class="muted small">bought with diamonds on the Select a Character screen</span></h2>
           <div class="table-scroll"><table class="table store-table">
@@ -316,6 +332,6 @@
   </div>
   <div id="toast" class="toast" hidden></div>
 
-  <script src="app.js?v=2026102903"></script>
+  <script src="app.js?v=2026102904"></script>
 </body>
 </html>

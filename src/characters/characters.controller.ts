@@ -5,7 +5,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { RolesGuard } from '../auth/guard/roles.guard';
 import { Roles } from '../auth/decorator/roles.decorator';
 import { CharactersService } from './characters.service';
-import { AscensionSettingsDto } from './dto/ascension.dto';
+import { AscensionSettingsDto, UnlockSettingsDto } from './dto/ascension.dto';
 
 // 🎮 Game: character stars (ascension) — Select a Character screen + multiplayer host
 @ApiTags('Characters')
@@ -33,6 +33,13 @@ export class CharactersController {
   @ApiOperation({ summary: 'One of my characters: stars, attack bonus, next star requirements (and which are met)' })
   async one(@Req() req, @Param('index', ParseIntPipe) index: number) {
     return this.charactersService.getOne(req.user.userId, index);
+  }
+
+  @Post(':index/unlock')
+  @ApiOperation({ summary: 'Unlock a character with gems (or coins), price set in the admin dashboard' })
+  @ApiResponse({ status: 400, description: 'Already unlocked, or not enough gems / coins (the message says which)' })
+  async unlock(@Req() req, @Param('index', ParseIntPipe) index: number) {
+    return this.charactersService.unlock(req.user.userId, index);
   }
 
   @Post(':index/ascend')
@@ -71,5 +78,36 @@ export class AdminAscensionController {
   @ApiOperation({ summary: 'Put the ascension rules back to the document values' })
   async reset(@Req() req) {
     return { message: 'Ascension rules reset', data: await this.charactersService.resetRules(req.user.userId) };
+  }
+}
+
+// 🔐 Admin: character unlock prices (dashboard, Store page)
+@ApiTags('Admin')
+@ApiBearerAuth()
+@ApiResponse({ status: 401, description: 'Unauthorized' })
+@ApiResponse({ status: 403, description: 'Admin role required' })
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles('admin')
+@Controller('admin/settings/characters')
+export class AdminCharacterUnlockController {
+  constructor(private readonly charactersService: CharactersService) {}
+
+  @Get()
+  @ApiOperation({ summary: 'Unlock price and currency of every character (0 = free)' })
+  async get() {
+    return { message: 'Character prices', data: await this.charactersService.getUnlocksWithMeta() };
+  }
+
+  @Put()
+  @ApiOperation({ summary: 'Save character unlock prices (players keep characters they already unlocked)' })
+  @ApiBody({ type: UnlockSettingsDto })
+  async save(@Req() req, @Body() body: UnlockSettingsDto) {
+    return { message: 'Character prices saved', data: await this.charactersService.saveUnlocks(req.user.userId, body) };
+  }
+
+  @Post('reset')
+  @ApiOperation({ summary: 'First character free, the others 200 gems' })
+  async reset(@Req() req) {
+    return { message: 'Character prices reset', data: await this.charactersService.resetUnlocks(req.user.userId) };
   }
 }

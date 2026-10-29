@@ -960,7 +960,92 @@
     });
   });
 
+  // character unlock prices (same page)
+  const unlockState = { saved: null };
+  const unlockStatus = (price, currency) =>
+    price === 0 ? '<span class="badge badge-active">Free for everyone</span>' : `<span class="badge badge-removed">Locked until bought (${fmt(price)} ${currency === 'coin' ? 'coins' : 'gems'})</span>`;
+
+  async function loadUnlocks() {
+    try {
+      const { data } = await api('/admin/settings/characters');
+      unlockState.saved = data.settings;
+      $('#unlock-body').innerHTML = data.settings.characters.map((c) => `
+        <tr data-index="${c.index}">
+          <td class="col-slot"><strong>${c.index + 1}</strong></td>
+          <td>${esc(c.name)}</td>
+          <td class="col-num"><input type="number" min="0" step="1" data-field="price" value="${c.price}" aria-label="Unlock price"></td>
+          <td class="col-num"><select data-field="currency" aria-label="Paid with">
+            <option value="gem" ${c.currency === 'gem' ? 'selected' : ''}>Gems</option>
+            <option value="coin" ${c.currency === 'coin' ? 'selected' : ''}>Coins</option>
+          </select></td>
+          <td class="unlock-status">${unlockStatus(c.price, c.currency)}</td>
+        </tr>`).join('');
+      $('#unlock-meta').textContent = data.updatedAt
+        ? `Last changed ${fmtDateTime(data.updatedAt)}${data.updatedBy ? ' by ' + data.updatedBy : ''}.`
+        : 'Default: the first character is free, the others cost 200 gems.';
+      $('#unlock-save').disabled = true;
+    } catch (err) {
+      toast(err.message, true);
+    }
+  }
+
+  function readUnlocks() {
+    return {
+      characters: [...$('#unlock-body').querySelectorAll('tr')].map((tr) => ({
+        index: Number(tr.dataset.index),
+        price: Number(tr.querySelector('[data-field="price"]').value),
+        currency: tr.querySelector('[data-field="currency"]').value,
+      })),
+    };
+  }
+
+  const onUnlockEdit = (e) => {
+    const tr = e.target.closest('tr');
+    if (!tr) return;
+    const price = tr.querySelector('[data-field="price"]');
+    const n = Number(price.value);
+    price.classList.toggle('invalid', price.value === '' || !Number.isInteger(n) || n < 0);
+    tr.querySelector('.unlock-status').innerHTML = unlockStatus(n, tr.querySelector('[data-field="currency"]').value);
+    const changed = readUnlocks().characters.some((c, i) => c.price !== unlockState.saved.characters[i].price || c.currency !== unlockState.saved.characters[i].currency);
+    $('#unlock-save').disabled = !changed;
+  };
+  $('#unlock-body').addEventListener('input', onUnlockEdit);
+  $('#unlock-body').addEventListener('change', onUnlockEdit);
+
+  $('#unlock-save').addEventListener('click', async () => {
+    if ($('#unlock-body').querySelector('input.invalid')) { toast('Fix the fields marked in red first', true); return; }
+    $('#unlock-save').disabled = true;
+    try {
+      await api('/admin/settings/characters', { method: 'PUT', body: readUnlocks() });
+      toast('Character prices saved. Players see them next time they open Select a Character.');
+      loadUnlocks();
+    } catch (err) {
+      toast(err.message, true);
+      $('#unlock-save').disabled = false;
+    }
+  });
+
+  $('#unlock-reset').addEventListener('click', () => {
+    openModal('Reset character prices?', `
+      <p>The first character becomes free and every other character costs 200 gems. Players keep characters they already unlocked.</p>
+      <div class="modal-actions">
+        <button class="btn" data-close>Cancel</button>
+        <button class="btn btn-danger" id="unlock-reset-confirm">Reset prices</button>
+      </div>`);
+    $('#unlock-reset-confirm').addEventListener('click', async () => {
+      try {
+        await api('/admin/settings/characters/reset', { method: 'POST' });
+        closeModal();
+        toast('Character prices reset');
+        loadUnlocks();
+      } catch (err) {
+        toast(err.message, true);
+      }
+    });
+  });
+
   async function loadStore() {
+    loadUnlocks();
     loadAscension();
     try {
       const { data } = await api('/admin/shop/items');

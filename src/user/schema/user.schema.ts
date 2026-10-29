@@ -53,6 +53,10 @@ export class User {
   @Prop({ type: Map, of: Number, default: {} })
   characterStars?: Map<string, number>;
 
+  // 🔓 khareede hue characters (index). Free (price 0) characters yahan nahi hote — src/characters
+  @Prop({ type: [Number], default: [] })
+  unlockedCharacters?: number[];
+
   // abhi chal raha story stage (start → complete) — ek waqt me ek
   @Prop({ type: Object, default: null })
   storyRun?: { id: string; stage: number; startedAt: Date } | null;
