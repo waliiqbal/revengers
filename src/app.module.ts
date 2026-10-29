@@ -22,6 +22,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { SupportModule } from './support/support.module';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
 import { ShopModule } from './shop/shop.module';
+import { CharactersModule } from './characters/characters.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { ShopModule } from './shop/shop.module';
     SupportModule,
     LeaderboardModule,
     ShopModule,
+    CharactersModule,
 
 
   ],

@@ -49,6 +49,10 @@ export class User {
   @Prop({ type: [Number], default: [] })  // poore kiye hue chapters — ascension (2 Stars = chapter 1) ke liye
   chaptersCompleted?: number[];
 
+  // ⭐ har character ke stars (key = game ka character index "0", "1", ...) — src/characters
+  @Prop({ type: Map, of: Number, default: {} })
+  characterStars?: Map<string, number>;
+
   // abhi chal raha story stage (start → complete) — ek waqt me ek
   @Prop({ type: Object, default: null })
   storyRun?: { id: string; stage: number; startedAt: Date } | null;

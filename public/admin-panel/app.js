@@ -889,7 +889,79 @@
   const PRODUCT_ID_RE = /^$|^[A-Za-z0-9][A-Za-z0-9._]{0,99}$/;
   const storeState = { sections: {} };
 
+  // character ascension rules (same page)
+  const ASCENSION_FIELDS = ['diamonds', 'minWins', 'minLevel', 'chapter', 'attackBonus'];
+  const ascensionState = { saved: null };
+
+  async function loadAscension() {
+    try {
+      const { data } = await api('/admin/settings/ascension');
+      ascensionState.saved = data.settings;
+      $('#ascension-body').innerHTML = data.settings.stars.map((s, i) => `
+        <tr data-star="${i}">
+          <td class="col-slot"><strong>${'★'.repeat(s.star)}</strong></td>
+          ${ASCENSION_FIELDS.map((f) => `<td class="col-num"><input type="number" min="0" step="1" data-field="${f}" value="${s[f]}" title="Document value: ${data.defaults.stars[i][f]}" aria-label="${f}"></td>`).join('')}
+        </tr>`).join('');
+      $('#ascension-meta').textContent = data.updatedAt
+        ? `Last changed ${fmtDateTime(data.updatedAt)}${data.updatedBy ? ' by ' + data.updatedBy : ''}.`
+        : 'These are the values from the game document (shards replaced by diamonds).';
+      $('#ascension-save').disabled = true;
+    } catch (err) {
+      toast(err.message, true);
+    }
+  }
+
+  function readAscension() {
+    return {
+      maxCharacters: ascensionState.saved.maxCharacters,
+      stars: [...$('#ascension-body').querySelectorAll('tr')].map((tr) =>
+        Object.fromEntries(ASCENSION_FIELDS.map((f) => [f, Number(tr.querySelector(`[data-field="${f}"]`).value)]))),
+    };
+  }
+
+  $('#ascension-body').addEventListener('input', (e) => {
+    const input = e.target;
+    const n = Number(input.value);
+    input.classList.toggle('invalid', input.value === '' || !Number.isInteger(n) || n < 0);
+    const now = readAscension().stars;
+    const changed = now.some((s, i) => ASCENSION_FIELDS.some((f) => s[f] !== ascensionState.saved.stars[i][f]));
+    $('#ascension-save').disabled = !changed;
+  });
+
+  $('#ascension-save').addEventListener('click', async () => {
+    if ($('#ascension-body').querySelector('input.invalid')) { toast('Fix the fields marked in red first', true); return; }
+    $('#ascension-save').disabled = true;
+    try {
+      await api('/admin/settings/ascension', { method: 'PUT', body: readAscension() });
+      toast('Character upgrades saved');
+      loadAscension();
+    } catch (err) {
+      toast(err.message, true);
+      $('#ascension-save').disabled = false;
+    }
+  });
+
+  $('#ascension-reset').addEventListener('click', () => {
+    openModal('Reset character upgrades?', `
+      <p>Every star goes back to the document values. Stars players already bought are kept.</p>
+      <div class="modal-actions">
+        <button class="btn" data-close>Cancel</button>
+        <button class="btn btn-danger" id="ascension-reset-confirm">Reset upgrades</button>
+      </div>`);
+    $('#ascension-reset-confirm').addEventListener('click', async () => {
+      try {
+        await api('/admin/settings/ascension/reset', { method: 'POST' });
+        closeModal();
+        toast('Character upgrades reset to the document values');
+        loadAscension();
+      } catch (err) {
+        toast(err.message, true);
+      }
+    });
+  });
+
   async function loadStore() {
+    loadAscension();
     try {
       const { data } = await api('/admin/shop/items');
       storeState.sections = data.sections;
