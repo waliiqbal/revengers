@@ -21,6 +21,7 @@ import { StoryModule } from './story/story.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { SupportModule } from './support/support.module';
 import { LeaderboardModule } from './leaderboard/leaderboard.module';
+import { ShopModule } from './shop/shop.module';
 
 @Module({
   imports: [
@@ -43,6 +44,7 @@ import { LeaderboardModule } from './leaderboard/leaderboard.module';
     NotificationsModule,
     SupportModule,
     LeaderboardModule,
+    ShopModule,
 
 
   ],

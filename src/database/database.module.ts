@@ -22,6 +22,7 @@ import { SettingsService } from '../settings/settings.service';
               { name: schema.Setting.name, schema: schema.SettingSchema },
                { name: schema.NotificationLog.name, schema: schema.NotificationLogSchema },
                 { name: schema.SupportTicket.name, schema: schema.SupportTicketSchema },
+                 { name: schema.ShopItem.name, schema: schema.ShopItemSchema },
 
     ]),
   ],

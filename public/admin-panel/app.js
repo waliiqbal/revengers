@@ -140,7 +140,7 @@
   $('#logout-btn').addEventListener('click', () => logout());
 
   // ---------- routing ----------
-  const views = { overview: loadOverview, players: loadPlayers, leaderboard: loadLeaderboard, notifications: loadNotifications, rewards: loadRewards, support: loadSupport };
+  const views = { overview: loadOverview, players: loadPlayers, leaderboard: loadLeaderboard, notifications: loadNotifications, rewards: loadRewards, support: loadSupport, store: loadStore };
 
   function route() {
     const name = (location.hash || '#overview').slice(1);
@@ -868,6 +868,168 @@
         renderRewards((await api('/admin/settings/rewards/reset', { method: 'POST' })).data);
         closeModal();
         toast('Rewards reset to defaults.');
+      } catch (err) {
+        toast(err.message, true);
+      }
+    });
+  });
+
+  // ---------- store ----------
+  // one card per game Store tab; the price currency of each tab is fixed by the game screen
+  const STORE_SECTIONS = [
+    { key: 'coins', title: 'Coins tab', gives: 'Coins given', price: 'Price (USD)', unit: '$', iap: true,
+      note: 'Real-money packs. Put the product IDs exactly as created in App Store Connect and Google Play Console (for example com.tokyorevengers.game.coins_100). The game does not take real payments yet: these IDs are stored for when in-app purchases are added.' },
+    { key: 'gems', title: 'Gems tab', gives: 'Gems given', price: 'Price', unit: 'coins',
+      note: 'Players pay with coins.' },
+    { key: 'diamonds', title: 'Diamonds tab', gives: 'Diamonds given', price: 'Price', unit: 'gems',
+      note: 'Players pay with gems.' },
+    { key: 'weapons', title: 'Weapons tab', gives: 'Text on card', price: 'Price', unit: 'diamonds', text: true,
+      note: 'Shown in the game only. Buying weapons is not built in the game yet, so the Buy button says "Coming soon".' },
+  ];
+  const PRODUCT_ID_RE = /^$|^[A-Za-z0-9][A-Za-z0-9._]{0,99}$/;
+  const storeState = { sections: {} };
+
+  async function loadStore() {
+    try {
+      const { data } = await api('/admin/shop/items');
+      storeState.sections = data.sections;
+      $('#store-meta').textContent = data.lastChange
+        ? `Last changed ${fmtDateTime(data.lastChange.at)}${data.lastChange.by ? ' by ' + data.lastChange.by : ''}.`
+        : 'These are the values from the game screens. Nothing has been changed yet.';
+      $('#store-sections').innerHTML = STORE_SECTIONS.map(storeSectionMarkup).join('');
+    } catch (err) {
+      toast(err.message, true);
+    }
+  }
+
+  function storeSectionMarkup(sec) {
+    const items = storeState.sections[sec.key] || [];
+    const rows = items.map((it) => `
+      <tr data-id="${esc(it._id)}" class="${it.active ? '' : 'row-off'}">
+        <td class="col-slot"><strong>#${it.slot}</strong></td>
+        <td><input type="text" data-field="title" maxlength="40" value="${esc(it.title)}" aria-label="Title"></td>
+        <td class="col-num">${sec.text
+          ? `<input type="text" data-field="description" maxlength="80" value="${esc(it.description)}" placeholder="(empty)" aria-label="Text on card">`
+          : `<input type="number" data-field="amount" min="0" step="1" value="${it.amount}" aria-label="${sec.gives}">`}</td>
+        <td class="col-num"><div class="price-cell">${sec.unit === '$' ? '<span class="unit">$</span>' : ''}
+          <input type="number" data-field="price" min="0" step="${sec.unit === '$' ? '0.01' : '1'}" value="${it.price}" aria-label="Price">
+          ${sec.unit === '$' ? '' : `<span class="unit">${sec.unit}</span>`}</div></td>
+        ${sec.iap ? `
+          <td class="col-id"><input type="text" data-field="iosProductId" maxlength="100" value="${esc(it.iosProductId)}" placeholder="iOS product ID" aria-label="iOS product ID"></td>
+          <td class="col-id"><input type="text" data-field="androidProductId" maxlength="100" value="${esc(it.androidProductId)}" placeholder="Android product ID" aria-label="Android product ID"></td>` : ''}
+        <td class="col-on"><input type="checkbox" data-field="active" ${it.active ? 'checked' : ''} aria-label="Show in game"></td>
+      </tr>`).join('');
+
+    return `
+      <div class="card" data-section="${sec.key}">
+        <h2>${sec.title} <span class="muted small">${items.length} cards</span></h2>
+        <div class="table-scroll"><table class="table store-table">
+          <thead><tr>
+            <th class="col-slot">Card</th><th>Title</th><th class="col-num">${sec.gives}</th><th class="col-num">${sec.price}</th>
+            ${sec.iap ? '<th class="col-id">iOS product ID (App Store)</th><th class="col-id">Android product ID (Google Play)</th>' : ''}
+            <th class="col-on">Show</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table></div>
+        <div class="section-foot">
+          <p class="note">${sec.note}</p>
+          <button class="btn btn-primary" data-store-save="${sec.key}" type="button" disabled>Save ${sec.title.toLowerCase()}</button>
+        </div>
+      </div>`;
+  }
+
+  function readStoreRow(tr) {
+    const value = (field) => tr.querySelector(`[data-field="${field}"]`);
+    const out = {};
+    for (const field of ['title', 'description', 'iosProductId', 'androidProductId']) {
+      if (value(field)) out[field] = value(field).value.trim();
+    }
+    for (const field of ['amount', 'price']) {
+      if (value(field)) out[field] = Number(value(field).value);
+    }
+    out.active = value('active').checked;
+    return out;
+  }
+
+  function storeRowChanges(section, tr) {
+    const original = (storeState.sections[section] || []).find((it) => it._id === tr.dataset.id);
+    const now = readStoreRow(tr);
+    return Object.fromEntries(Object.entries(now).filter(([k, v]) => original[k] !== v));
+  }
+
+  function validateStoreRow(section, tr) {
+    let ok = true;
+    tr.querySelectorAll('input').forEach((input) => {
+      let bad = false;
+      const field = input.dataset.field;
+      if (field === 'iosProductId' || field === 'androidProductId') bad = !PRODUCT_ID_RE.test(input.value.trim());
+      if (field === 'amount' || field === 'price') {
+        const n = Number(input.value);
+        bad = input.value === '' || !Number.isFinite(n) || n < 0 || (section !== 'coins' && field === 'price' && !Number.isInteger(n)) || (field === 'amount' && !Number.isInteger(n));
+      }
+      if (field === 'title') bad = !input.value.trim();
+      input.classList.toggle('invalid', bad);
+      if (bad) ok = false;
+    });
+    return ok;
+  }
+
+  $('#store-sections').addEventListener('input', (e) => {
+    const card = e.target.closest('[data-section]');
+    const tr = e.target.closest('tr[data-id]');
+    if (!card || !tr) return;
+    const section = card.dataset.section;
+    validateStoreRow(section, tr);
+    tr.classList.toggle('row-dirty', Object.keys(storeRowChanges(section, tr)).length > 0);
+    tr.classList.toggle('row-off', !tr.querySelector('[data-field="active"]').checked);
+    card.querySelector('[data-store-save]').disabled = !card.querySelector('tr.row-dirty');
+  });
+
+  $('#store-sections').addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-store-save]');
+    if (!btn) return;
+    const section = btn.dataset.storeSave;
+    const card = btn.closest('[data-section]');
+    const dirty = [...card.querySelectorAll('tr.row-dirty')];
+    if (!dirty.every((tr) => validateStoreRow(section, tr))) { toast('Fix the fields marked in red first', true); return; }
+
+    btn.disabled = true;
+    let saved = 0;
+    try {
+      for (const tr of dirty) {
+        const changes = storeRowChanges(section, tr);
+        const { data } = await api(`/admin/shop/items/${tr.dataset.id}`, { method: 'PUT', body: changes });
+        const list = storeState.sections[section];
+        list[list.findIndex((it) => it._id === data._id)] = data;
+        tr.classList.remove('row-dirty');
+        saved++;
+      }
+      toast(`Saved ${saved} card${saved === 1 ? '' : 's'}. Players see it next time they open the Store.`);
+      loadStore();
+    } catch (err) {
+      toast(err.message, true);
+      btn.disabled = false;
+    }
+  });
+
+  // the dirty-check listener above only reacts to "input"; checkboxes fire "change" in some browsers
+  $('#store-sections').addEventListener('change', (e) => {
+    if (e.target.type === 'checkbox') e.target.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+
+  $('#store-reset').addEventListener('click', () => {
+    openModal('Reset the store?', `
+      <p>Every card goes back to the values from the game screens and is shown again. In-app product IDs are kept.</p>
+      <div class="modal-actions">
+        <button class="btn" data-close>Cancel</button>
+        <button class="btn btn-danger" id="store-reset-confirm">Reset store</button>
+      </div>`);
+    $('#store-reset-confirm').addEventListener('click', async () => {
+      try {
+        await api('/admin/shop/reset', { method: 'POST' });
+        closeModal();
+        toast('Store reset to the game defaults');
+        loadStore();
       } catch (err) {
         toast(err.message, true);
       }

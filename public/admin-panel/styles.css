@@ -288,3 +288,21 @@ nav { display: grid; gap: 4px; }
 .reply-box { display: grid; gap: 10px; margin-top: 14px; }
 .reply-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
 .reply-actions .left, .reply-actions .right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* ---------- store ---------- */
+.store-sections { display: grid; gap: 16px; }
+.store-sections .card { display: grid; gap: 12px; }
+.store-sections .card h2 { margin: 0; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.store-table td, .store-table th { padding: 8px 10px; vertical-align: middle; }
+.store-table input[type="text"], .store-table input[type="number"] { width: 100%; min-width: 0; }
+.store-table .col-slot { width: 64px; }
+.store-table .col-num { width: 130px; }
+.store-table .col-id { min-width: 230px; }
+.store-table .col-on { width: 70px; text-align: center; }
+.store-table tr.row-off td:not(.col-on) { opacity: .45; }
+.store-table tr.row-dirty td:first-child { box-shadow: inset 3px 0 0 var(--accent); }
+.store-table input.invalid { border-color: var(--critical); background: var(--critical-soft); }
+.price-cell { display: flex; align-items: center; gap: 6px; }
+.price-cell .unit { color: var(--muted); font-size: 12px; white-space: nowrap; }
+.section-foot { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+.note { background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; color: var(--ink-2); font-size: 13px; }

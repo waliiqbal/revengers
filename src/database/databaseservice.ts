@@ -27,6 +27,8 @@ export class DatabaseService {
     private notificationModel: Model<schema.NotificationLogDocument>,
     @InjectModel(schema.SupportTicket.name)
     private supportTicketModel: Model<schema.SupportTicketDocument>,
+    @InjectModel(schema.ShopItem.name)
+    private shopItemModel: Model<schema.ShopItemDocument>,
 
      ) {}
      get repositories() {
@@ -41,6 +43,7 @@ export class DatabaseService {
       settingModel: this.settingModel,
       notificationModel: this.notificationModel,
       supportTicketModel: this.supportTicketModel,
+      shopItemModel: this.shopItemModel,
 
         };
   }
