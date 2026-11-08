@@ -11,7 +11,7 @@ import { LoginDto } from './dto/login.dto';
 import { DatabaseService } from "src/database/databaseservice";
 import { OAuth2Client } from 'google-auth-library';
 import axios from 'axios';
-import { MailService, escapeHtml } from '../mail/mail.service';
+import { MailService } from '../mail/mail.service';
 import { VerifyOtpDto } from './dto/email-otp.dto';
 import {
   OTP_MAX_ATTEMPTS, OTP_RESEND_SECONDS, OTP_TTL_MINUTES,
@@ -267,15 +267,18 @@ private async sendOtp(user: UserDocument, { force = false } = {}) {
   });
 
   try {
-    const title = 'Your verification code';
-    await this.mail.send(
+    const m = this.mail;
+    await m.send(
       user.email,
       `${code} is your Tokyo Revengers code`,
       `${user.name ? `Hi ${user.name},\n\n` : ''}Your Tokyo Revengers verification code is ${code}\n\nIt works for ${OTP_TTL_MINUTES} minutes. If you didn't create an account, you can ignore this email.\n\n— Tokyo Revengers`,
-      this.mail.layout(title, `${user.name ? `<p style="margin:0 0 14px">Hi ${escapeHtml(user.name)},</p>` : ''}
-<p style="margin:0 0 14px">Enter this code in the game to verify your email:</p>
-<div style="font-size:34px;font-weight:700;letter-spacing:10px;text-align:center;background:#f5f6f8;border-radius:10px;padding:16px;margin:0 0 14px">${code}</div>
-<p style="margin:0 0 14px;color:#5b6170">It works for ${OTP_TTL_MINUTES} minutes. If you didn't create an account, you can ignore this email.</p>`),
+      m.layout('Verify your email',
+        m.greeting(user.name) +
+        m.p('Welcome to the gang! Enter this code in the game to verify your email and start playing:') +
+        m.codeBox(code) +
+        m.p(`This code works for ${OTP_TTL_MINUTES} minutes and can only be used once. Never share it with anyone, not even someone saying they're from Tokyo Revengers.`, '#9a9aa6') +
+        m.p("Didn't create an account? You can safely ignore this email.", '#9a9aa6'),
+        `Your verification code is ${code}. It works for ${OTP_TTL_MINUTES} minutes.`),
     );
     return { sent: true, waitSeconds: OTP_RESEND_SECONDS };
   } catch (error) {

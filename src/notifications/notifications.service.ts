@@ -3,7 +3,7 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { Types } from 'mongoose';
 import { DatabaseService } from '../database/databaseservice';
 import { FirebaseAdminService } from '../firebaseAdmin/firebase-admin.service';
-import { MailService, escapeHtml } from '../mail/mail.service';
+import { MailService } from '../mail/mail.service';
 import { NotificationAudienceDto, SendNotificationDto } from './dto/send-notification.dto';
 
 const EMAIL_PARALLEL = 5;   // ek waqt me itne emails (SMTP limits ke liye)
@@ -162,8 +162,7 @@ export class NotificationsService {
   }
 
   private emailHtml(name: string | undefined, title: string, body: string) {
-    const paragraphs = escapeHtml(body).split(/\n{2,}/).map((p) => `<p style="margin:0 0 14px">${p.replace(/\n/g, '<br>')}</p>`).join('');
-    return this.mail.layout(title, `${name ? `<p style="margin:0 0 14px">Hi ${escapeHtml(name)},</p>` : ''}${paragraphs}`);
+    return this.mail.layout(title, this.mail.greeting(name) + this.mail.p(body), body.slice(0, 120));
   }
 
   async history(page = 1, limit = 20) {
