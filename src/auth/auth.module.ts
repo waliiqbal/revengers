@@ -10,6 +10,7 @@ import { AuthController } from './auth.controller';
 import { JwtStrategy } from './jwt.strategy'
 
 import { User, UserSchema } from '../user/schema/user.schema';
+import { MailModule } from '../mail/mail.module';
 
 @Module({
   imports: [
@@ -31,6 +32,8 @@ import { User, UserSchema } from '../user/schema/user.schema';
 
     // ✅ User schema inject for MongoDB
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
+
+    MailModule,   // ✉️ OTP emails
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy],

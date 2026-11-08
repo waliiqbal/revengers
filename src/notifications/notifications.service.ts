@@ -1,15 +1,12 @@
 /* eslint-disable prettier/prettier */
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { Types } from 'mongoose';
-import * as nodemailer from 'nodemailer';
 import { DatabaseService } from '../database/databaseservice';
 import { FirebaseAdminService } from '../firebaseAdmin/firebase-admin.service';
+import { MailService, escapeHtml } from '../mail/mail.service';
 import { NotificationAudienceDto, SendNotificationDto } from './dto/send-notification.dto';
 
 const EMAIL_PARALLEL = 5;   // ek waqt me itne emails (SMTP limits ke liye)
-
-const escapeHtml = (text: string) =>
-  text.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
 @Injectable()
 export class NotificationsService {
@@ -18,6 +15,7 @@ export class NotificationsService {
   constructor(
     private databaseService: DatabaseService,
     private firebase: FirebaseAdminService,
+    private mail: MailService,
   ) {}
 
   private get userModel() {
@@ -28,19 +26,9 @@ export class NotificationsService {
     return this.databaseService.repositories.notificationModel;
   }
 
-  // 📧 SMTP settings server ki .env se: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM, SMTP_SECURE
+  // 📧 SMTP settings: src/mail (server ki .env)
   private smtp() {
-    const host = process.env.SMTP_HOST;
-    const port = Number(process.env.SMTP_PORT || 587);
-    return {
-      configured: !!(host && process.env.SMTP_USER && process.env.SMTP_PASS),
-      host,
-      port,
-      secure: process.env.SMTP_SECURE ? process.env.SMTP_SECURE === 'true' : port === 465,
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
-      from: process.env.SMTP_FROM || process.env.SMTP_USER,
-    };
+    return this.mail.config();
   }
 
   // banned, removed aur admin accounts ko kabhi nahi bhejna
@@ -142,12 +130,7 @@ export class NotificationsService {
 
   private async deliverEmail(logId: unknown, query: any, dto: SendNotificationDto) {
     const smtp = this.smtp();
-    const transporter = nodemailer.createTransport({
-      host: smtp.host,
-      port: smtp.port,
-      secure: smtp.secure,
-      auth: { user: smtp.user, pass: smtp.pass },
-    });
+    const transporter = this.mail.transporter();
 
     const users = await this.userModel.find(query).select('email name').lean();
     const title = dto.title.trim();
@@ -180,12 +163,7 @@ export class NotificationsService {
 
   private emailHtml(name: string | undefined, title: string, body: string) {
     const paragraphs = escapeHtml(body).split(/\n{2,}/).map((p) => `<p style="margin:0 0 14px">${p.replace(/\n/g, '<br>')}</p>`).join('');
-    return `<!doctype html><html><body style="margin:0;background:#f5f6f8;font-family:system-ui,-apple-system,'Segoe UI',sans-serif;color:#16181d">
-<div style="max-width:560px;margin:24px auto;background:#fff;border:1px solid #e4e6ea;border-radius:12px;padding:28px">
-<div style="font-weight:700;font-size:18px;margin-bottom:18px">Tokyo Revengers</div>
-<h1 style="font-size:20px;margin:0 0 16px">${escapeHtml(title)}</h1>
-${name ? `<p style="margin:0 0 14px">Hi ${escapeHtml(name)},</p>` : ''}${paragraphs}
-</div></body></html>`;
+    return this.mail.layout(title, `${name ? `<p style="margin:0 0 14px">Hi ${escapeHtml(name)},</p>` : ''}${paragraphs}`);
   }
 
   async history(page = 1, limit = 20) {

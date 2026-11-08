@@ -10,6 +10,7 @@ import { AuthService } from './auth.service';
 import { SignupDto } from './dto/signup.dto';
 import { LoginDto } from './dto/login.dto';
 import { SocialLoginDto } from './dto/social-login.dto';
+import { ResendOtpDto, VerifyOtpDto } from './dto/email-otp.dto';
 
 @ApiTags('Auth')
 @Controller('auth')
@@ -32,6 +33,24 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Invalid email or password' })
   async login(@Body() loginDto: LoginDto) {
     return this.authService.login(loginDto);
+  }
+
+  @Post('verify-otp')
+  @ApiOperation({ summary: 'Verify the email with the 6-digit code; returns the login token' })
+  @ApiBody({ type: VerifyOtpDto })
+  @ApiResponse({ status: 201, description: 'Email verified, logged in' })
+  @ApiResponse({ status: 400, description: 'Wrong / expired code, too many tries' })
+  async verifyOtp(@Body() body: VerifyOtpDto) {
+    return this.authService.verifyOtp(body);
+  }
+
+  @Post('resend-otp')
+  @ApiOperation({ summary: 'Email a new 6-digit code (once every 60 seconds)' })
+  @ApiBody({ type: ResendOtpDto })
+  @ApiResponse({ status: 201, description: 'New code sent' })
+  @ApiResponse({ status: 400, description: 'Too soon / already verified / email failed' })
+  async resendOtp(@Body() body: ResendOtpDto) {
+    return this.authService.resendOtp(body.email);
   }
 
   @Post('social-login')

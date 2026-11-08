@@ -73,7 +73,9 @@
   function statusBadge(p) {
     const s = statusOf(p);
     const label = { active: 'Active', banned: 'Banned', removed: 'Removed' }[s];
-    return `<span class="badge badge-${s}">${label}</span>`;
+    // email/password players must enter the code from their email before they can play (Google players are verified by Google)
+    const unverified = !p.providerId && p.role !== 'admin' && !p.emailVerified;
+    return `<span class="badge badge-${s}">${label}</span>${unverified ? ' <span class="badge badge-removed" title="Hasn\'t entered the code from the verification email yet">Email not verified</span>' : ''}`;
   }
 
   // ---------- API ----------

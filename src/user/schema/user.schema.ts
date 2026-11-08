@@ -95,6 +95,23 @@ export class User {
   @Prop()
   password?: string;   // optional, no default
 
+  // ✉️ email/password accounts: OTP se verify hone tak login token nahi milta (src/auth/email-otp.ts).
+  // Purane accounts me ye field hai hi nahi = not verified. Google accounts aur admin ko zaroorat nahi.
+  @Prop({ default: false })
+  emailVerified?: boolean;
+
+  @Prop({ default: null })  // OTP ka hash (asli code kabhi save nahi hota)
+  emailOtpHash?: string;
+
+  @Prop({ default: null })
+  emailOtpExpiresAt?: Date;
+
+  @Prop({ default: null })  // resend ka 60 second wala wait isi se
+  emailOtpSentAt?: Date;
+
+  @Prop({ default: 0 })     // galat codes; 5 ke baad naya code mangwana padta hai
+  emailOtpAttempts?: number;
+
   // 👇 admin panel fields
   @Prop({ type: String, enum: ['player', 'admin'], default: 'player' })
   role?: string;

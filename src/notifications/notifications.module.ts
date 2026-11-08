@@ -1,11 +1,12 @@
 /* eslint-disable prettier/prettier */
 import { Module } from '@nestjs/common';
 import { FirebaseAdminModule } from '../firebaseAdmin/firebase-admin.module';
+import { MailModule } from '../mail/mail.module';
 import { NotificationsController } from './notifications.controller';
 import { NotificationsService } from './notifications.service';
 
 @Module({
-  imports: [FirebaseAdminModule],
+  imports: [FirebaseAdminModule, MailModule],
   controllers: [NotificationsController],
   providers: [NotificationsService],
 })

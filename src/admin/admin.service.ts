@@ -9,8 +9,8 @@ import { isValidObjectId, Model, SortOrder } from 'mongoose';
 import { DatabaseService } from '../database/databaseservice';
 import { LeaderboardQueryDto, ListPlayersQueryDto } from './dto/admin-query.dto';
 
-// admin ko password / fcmToken kabhi nahi bhejna
-const HIDDEN_FIELDS = '-password -fcmToken';
+// admin ko password / fcmToken / OTP kabhi nahi bhejna
+const HIDDEN_FIELDS = '-password -fcmToken -emailOtpHash -emailOtpExpiresAt -emailOtpSentAt -emailOtpAttempts';
 const CHART_DAYS = 14;
 
 const escapeRegex = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
