@@ -1,486 +1,293 @@
 /* eslint-disable prettier/prettier */
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { isValidObjectId, Types } from 'mongoose';
+import { DatabaseService } from '../database/databaseservice';
+import { FirebaseAdminService } from '../firebaseAdmin/firebase-admin.service';
 
+export const FRIEND_PAGE_MAX = 50;
 
-import { Types,  } from 'mongoose';
+// Purane friend records me ids text (string) ki shakal me save hain, naye ObjectId bhi ho sakte hain —
+// is liye har query dono shaklon se match karti hai.
+const idForms = (id: unknown) => {
+  const s = String(id);
+  return isValidObjectId(s) ? [s, new Types.ObjectId(s)] : [s];
+};
+const idQ = (id: unknown) => ({ $in: idForms(id) });
+const idsQ = (ids: unknown[]) => ({ $in: ids.flatMap(idForms) });
+const escapeRegex = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
+// players jo friends list / search me dikh sakte hain
+const VISIBLE_PLAYER = { role: { $ne: 'admin' }, isDeleted: { $ne: true }, isBanned: { $ne: true } };
 
+// relationStatus (game ka enum): open = koi rishta nahi, requested = maine bheji, pending = mujhe aayi, close = friends
+@Injectable()
+export class FriendService {
+  private readonly logger = new Logger('Friends');
 
-
-
-import { DatabaseService } from "src/database/databaseservice";
-
- @Injectable()
- export class FriendService {
-   constructor(
-
+  constructor(
     private databaseService: DatabaseService,
-   ) {}
+    private firebase: FirebaseAdminService,
+  ) {}
 
-async sendFriendRequest(senderId: string, receiverId: string) {
-  // 1. sender fetch
-  const sender = await this.databaseService.repositories.userModel.findById(senderId);
-  if (!sender) {
-    throw new Error('Sender not found');
+  private get users() {
+    return this.databaseService.repositories.userModel;
   }
 
-  // 2. receiver fetch
-  const receiver = await this.databaseService.repositories.userModel.findById(receiverId);
-  if (!receiver) {
-    throw new Error('Receiver not found');
+  private get friends() {
+    return this.databaseService.repositories.friendModel;
   }
 
-   const existingRequest = await this.databaseService.repositories.friendModel.findOne({
-    senderId,
-    receiverId,
-    status: 'open'   // yahan tumhara schema me jo field hai use check karo
-  });
-
-   if (existingRequest) {
-    return {
-      message: 'You are already friend',
-      data: existingRequest,
-    };
+  private page(page: number, limit: number) {
+    const p = Math.max(1, Math.floor(page) || 1);
+    const l = Math.min(FRIEND_PAGE_MAX, Math.max(1, Math.floor(limit) || 10));
+    return { page: p, limit: l, skip: (p - 1) * l };
   }
 
-     const Request = await this.databaseService.repositories.friendModel.findOne({
-    senderId,
-    receiverId,
-    status: 'pending',
-    isDeleted: false
-       
-  });
-
-   if (Request) {
-    return {
-      message: 'You have already sent a friend request',
-      data: Request,
-    };
+  private pagination(total: number, page: number, limit: number) {
+    return { total, page, limit, totalPages: Math.ceil(total / limit), hasMore: page * limit < total };
   }
 
-   // 5. check if there was a declined/removed request before
-  const oldClosedRequest = await this.databaseService.repositories.friendModel.findOne({
-    $or: [
-      { senderId, receiverId },
-      { senderId: receiverId, receiverId: senderId }
-    ],
-    status: "close",
-    isDeleted: true,
-  });
-
-  if (oldClosedRequest) {
-    // update that request instead of creating new
-    (oldClosedRequest.senderId as any) = senderId;
-    (oldClosedRequest.receiverId as any) = receiverId;
-    oldClosedRequest.senderName = sender.name;
-    oldClosedRequest.receiverName = receiver.name;
-    oldClosedRequest.status = "pending";
-    oldClosedRequest.isDeleted = false;
-
-    await oldClosedRequest.save();
-
-    return {
-      message: "Friend request re-sent successfully",
-      data: oldClosedRequest,
-    };
-  }
-  // 3. friend request create
-  const friendRequest = await this.databaseService.repositories.friendModel.create({
-    senderId,
-    receiverId,
-    senderName: sender.name,
-    receiverName: receiver.name,
-    status: "pending",       // default pending
-    isDeleted: false,   
-    
-  });
-
-  return {
-    message: 'Friend request sent successfully',
-    data: friendRequest,
-  };
-}
-
-async getFriendRequests(
-  userId: string,
-  type: string,
-  page: number,
-  limit: number
-) {
-  let filter = {};
-  let populateField = '';
-
-  if (type === 'get-friend-request') {
-    filter = { receiverId: userId, status: "pending", isDeleted: false };
-    populateField = 'senderId';
-  } else if (type === 'my-sending-request') {
-    filter = { senderId: userId, status: "pending", isDeleted: false };
-    populateField = 'receiverId';
-  } else {
-    throw new Error('Invalid type');
+  private card(user: any, relationStatus: string) {
+    return { _id: user._id, name: user.name, displayPic: user.displayPic, level: user.level, relationStatus };
   }
 
-  // skip calculate
-  const skip = (page - 1) * limit;
-
-  // query with pagination
-  const requests = await this.databaseService.repositories.friendModel
-    .find(filter)
-    .populate({
-      path: populateField,
-      select: '_id name displayPic level status',
-      model: 'User',
-    })
-    .skip(skip)
-    .limit(limit);
-
-  // total count for pagination meta
-  const totalRequests = await this.databaseService.repositories.friendModel.countDocuments(filter);
-
-  // clean response
-  const userDetails = requests.map((req: any) => {
-    const user = req[populateField];
-    return {
-      _id: user._id,
-      name: user.name,
-      displayPic: user.displayPic,
-      level: user.level,
-      status: user.status,
-    };
-  });
-
-  return {
-    message: 'Friend requests fetched successfully',
-    data: userDetails,
-    pagination: {
-      total: totalRequests,
-      page,
-      limit,
-      totalPages: Math.ceil(totalRequests / limit),
-    },
-  };
-}
-
-
-
-   async acceptRequest(receiverId: string, body: any) {
-  const { id, type } = body; // id = senderId
-
-  if (type !== 'accept' && type !== 'reject') {
-    throw new BadRequestException('Invalid type');
-  }
-
-  let updateData = {};
-
-  if (type === 'accept') {
-    updateData = { status: 'open' };
-  } else if (type === 'reject') {
-    updateData = { status: 'close', isDeleted: true };
-  }
-
-  const request = await this.databaseService.repositories.friendModel.findOneAndUpdate(
-    { senderId: id, receiverId: receiverId, status: 'pending', isDeleted: false },
-    { $set: updateData },
-    { new: true },
-  );
-
-  if (!request) {
-    throw new BadRequestException('Request not found or already processed');
-  }
-
-  return {
-    message:
-      type === 'accept'
-        ? 'Friend request accepted'
-        : 'Friend request rejected',
-    data: request,
-  };
-}
-
-async declineFriendRequest(senderId: string, receiverId: string) {
-
-  console.log(senderId)
-  console.log(receiverId)
-
-  const friend = await this.databaseService.repositories.friendModel.findOneAndUpdate(
-    { senderId: senderId, receiverId: receiverId },
-    { $set: { status: "close" , isDeleted: false} },
-    { new: true }
-  );
-
-  if (!friend) {
-    throw new NotFoundException("Friend request not found");
-  }
-
-  return { message: "Friend request declined successfully" };
-}
-
-// Service
-async getFriends(userId: string, page: number, limit: number, search?: string) {
-  const skip = (page - 1) * limit;
-
-  console.log("UserId:", userId);
-
-  // ✅ ab sirf status "open" wale friends ayenge
-  const matchStage = {
-    status: "open",
-    isDeleted: false,
-    $or: [
-      { senderId: userId },
-      { receiverId: userId }
-    ]
-  };
-
-  console.log("Match Stage:", JSON.stringify(matchStage, null, 2));
-
-  const pipeline: any[] = [
-    { $match: matchStage },
-
-    // ✅ sender details (string → ObjectId conversion)
-    {
-      $lookup: {
-        from: "users",
-        let: { senderObjId: { $toObjectId: "$senderId" } },
-        pipeline: [
-          { $match: { $expr: { $eq: ["$_id", "$$senderObjId"] } } }
-        ],
-        as: "sender"
+  // 🔔 push to one player; never fails the request (no token / app removed = just skip)
+  private async push(userId: unknown, title: string, body: string, data: Record<string, string>) {
+    try {
+      const user = await this.users.findById(String(userId)).select('fcmToken isBanned isDeleted').lean();
+      if (!user?.fcmToken || user.isBanned || user.isDeleted) return;
+      const result = await this.firebase.sendToMany([user.fcmToken], { title, body }, data);
+      if (result.invalidTokens.length) {
+        await this.users.updateOne({ _id: user._id, fcmToken: user.fcmToken }, { $set: { fcmToken: null } });
       }
-    },
-    { $unwind: "$sender" },
-
-    // ✅ receiver details (string → ObjectId conversion)
-    {
-      $lookup: {
-        from: "users",
-        let: { receiverObjId: { $toObjectId: "$receiverId" } },
-        pipeline: [
-          { $match: { $expr: { $eq: ["$_id", "$$receiverObjId"] } } }
-        ],
-        as: "receiver"
-      }
-    },
-    { $unwind: "$receiver" },
-
-    // ✅ decide friend field
-    {
-      $addFields: {
-        friend: {
-          $cond: [
-            { $eq: [{ $toString: "$sender._id" }, userId] },
-            "$receiver",
-            "$sender"
-          ]
-        }
-      }
+    } catch (error) {
+      this.logger.warn(`Push to ${userId} failed: ${error.message}`);
     }
-  ];
+  }
 
-  // optional search
-  if (search) {
-    pipeline.push({
-      $match: {
-        "friend.name": { $regex: search, $options: "i" }
-      }
+  // the one active (not removed) record between two players, either direction
+  private activeBetween(a: string, b: string) {
+    return this.friends.findOne({
+      isDeleted: false,
+      status: { $in: ['pending', 'open'] },
+      $or: [
+        { senderId: idQ(a), receiverId: idQ(b) },
+        { senderId: idQ(b), receiverId: idQ(a) },
+      ],
     });
-    console.log("Search Applied:", search);
   }
 
-  // projection
-  pipeline.push({
-    $project: {
-      _id: 0,
-      id: "$friend._id",
-      name: "$friend.name",
-      displayPic: "$friend.displayPic",
-      level: "$friend.level",
-      status: "$status"
+  async sendFriendRequest(senderId: string, receiverId: string) {
+    if (String(senderId) === String(receiverId)) throw new BadRequestException("You can't add yourself");
+
+    const [sender, receiver] = await Promise.all([
+      this.users.findById(senderId).select('name').lean(),
+      this.users.findOne({ _id: receiverId, ...VISIBLE_PLAYER }).select('name').lean(),
+    ]);
+    if (!sender) throw new NotFoundException('Player not found');
+    if (!receiver) throw new NotFoundException('Player not found');
+
+    const active = await this.activeBetween(senderId, receiverId);
+    if (active?.status === 'open') throw new BadRequestException(`You are already friends with ${receiver.name}`);
+    if (active && String(active.senderId) === String(senderId)) {
+      throw new BadRequestException('You have already sent a friend request');
     }
-  });
+    if (active) {
+      // they already asked me → sending back = accepting
+      const accepted = await this.friends.findOneAndUpdate(
+        { _id: active._id, status: 'pending', isDeleted: false },
+        { $set: { status: 'open' } },
+        { new: true },
+      );
+      if (accepted) {
+        void this.push(receiverId, 'Friend request accepted', `${sender.name} accepted your friend request`, {
+          type: 'friend_accepted', userId: String(senderId),
+        });
+        return { message: `You are now friends with ${receiver.name}`, data: accepted };
+      }
+    }
 
-  // pagination
-  pipeline.push({ $skip: skip });
-  pipeline.push({ $limit: limit });
+    // reuse an old declined / cancelled / removed record so there is only one per pair
+    const fields = {
+      senderId: String(senderId),
+      receiverId: String(receiverId),
+      senderName: sender.name,
+      receiverName: receiver.name,
+      status: 'pending',
+      isDeleted: false,
+    };
+    const old = await this.friends.findOne({
+      $or: [
+        { senderId: idQ(senderId), receiverId: idQ(receiverId) },
+        { senderId: idQ(receiverId), receiverId: idQ(senderId) },
+      ],
+    }).sort({ updatedAt: -1 });
 
-  console.log("Final Pipeline:", JSON.stringify(pipeline, null, 2));
+    let request;
+    if (old) {
+      // only if it is still inactive (another request could have landed in between)
+      request = await this.friends.findOneAndUpdate(
+        { _id: old._id, $or: [{ isDeleted: true }, { status: 'close' }] },
+        { $set: fields },
+        { new: true },
+      );
+      if (!request) throw new BadRequestException('You have already sent a friend request');
+    } else {
+      request = await this.friends.create(fields);
+    }
 
-  // aggregation
-  const friends = await this.databaseService.repositories.friendModel.aggregate(pipeline);
-  console.log("Friends Result:", JSON.stringify(friends, null, 2));
+    void this.push(receiverId, 'New friend request', `${sender.name} wants to be your friend`, {
+      type: 'friend_request', userId: String(senderId),
+    });
+    return { message: 'Friend request sent', data: request };
+  }
 
-  // total count
-  let total: number;
+  // type: get-friend-request (sent to me) | my-sending-request (sent by me)
+  async getFriendRequests(userId: string, type: string, page: number, limit: number) {
+    const incoming = type === 'get-friend-request';
+    if (!incoming && type !== 'my-sending-request') throw new BadRequestException('Invalid type');
+    const p = this.page(page, limit);
 
-  if (!search) {
-    total = await this.databaseService.repositories.friendModel.countDocuments(matchStage);
-    console.log("Total (no search):", total);
-  } else {
-    const totalResult = await this.databaseService.repositories.friendModel.aggregate([
-      { $match: matchStage },
-      {
-        $lookup: {
-          from: "users",
-          let: { senderObjId: { $toObjectId: "$senderId" } },
-          pipeline: [
-            { $match: { $expr: { $eq: ["$_id", "$$senderObjId"] } } }
-          ],
-          as: "sender"
-        }
-      },
-      { $unwind: "$sender" },
-      {
-        $lookup: {
-          from: "users",
-          let: { receiverObjId: { $toObjectId: "$receiverId" } },
-          pipeline: [
-            { $match: { $expr: { $eq: ["$_id", "$$receiverObjId"] } } }
-          ],
-          as: "receiver"
-        }
-      },
-      { $unwind: "$receiver" },
-      {
-        $addFields: {
-          friend: {
-            $cond: [
-              { $eq: [{ $toString: "$sender._id" }, userId] },
-              "$receiver",
-              "$sender"
-            ]
-          }
-        }
-      },
-      {
-        $match: {
-          "friend.name": { $regex: search, $options: "i" }
-        }
-      },
-      { $count: "total" }
+    const filter = incoming
+      ? { receiverId: idQ(userId), status: 'pending', isDeleted: false }
+      : { senderId: idQ(userId), status: 'pending', isDeleted: false };
+    const otherField = incoming ? 'senderId' : 'receiverId';
+
+    const [requests, total] = await Promise.all([
+      this.friends.find(filter).sort({ updatedAt: -1, _id: -1 }).skip(p.skip).limit(p.limit).lean(),
+      this.friends.countDocuments(filter),
+    ]);
+    const otherIds = requests.map((r) => String(r[otherField]));
+    const users = await this.users.find({ _id: { $in: otherIds } }).select('_id name displayPic level').lean();
+    const byId = new Map(users.map((u) => [String(u._id), u]));
+
+    return {
+      message: 'Friend requests fetched successfully',
+      data: otherIds.filter((id) => byId.has(id)).map((id) => this.card(byId.get(id), incoming ? 'pending' : 'requested')),
+      pagination: this.pagination(total, p.page, p.limit),
+    };
+  }
+
+  // receiver answers: accept → friends (push to the sender), reject/decline → request closed
+  async acceptRequest(receiverId: string, body: { id: string; type?: string }) {
+    const accept = body.type === 'accept';
+    if (!accept && body.type !== 'reject' && body.type !== 'decline') {
+      throw new BadRequestException('Invalid type');
+    }
+
+    const request = await this.friends.findOneAndUpdate(
+      { senderId: idQ(body.id), receiverId: idQ(receiverId), status: 'pending', isDeleted: false },
+      { $set: accept ? { status: 'open' } : { status: 'close', isDeleted: true } },
+      { new: true },
+    );
+    if (!request) throw new BadRequestException('Request not found or already answered');
+
+    if (accept) {
+      const me = await this.users.findById(receiverId).select('name').lean();
+      void this.push(body.id, 'Friend request accepted', `${me?.name || 'A player'} accepted your friend request`, {
+        type: 'friend_accepted', userId: String(receiverId),
+      });
+    }
+    return { message: accept ? 'Friend request accepted' : 'Friend request declined', data: request };
+  }
+
+  // sender cancels a request they sent
+  async declineFriendRequest(senderId: string, receiverId: string) {
+    const request = await this.friends.findOneAndUpdate(
+      { senderId: idQ(senderId), receiverId: idQ(receiverId), status: 'pending', isDeleted: false },
+      { $set: { status: 'close', isDeleted: true } },
+      { new: true },
+    );
+    if (!request) throw new NotFoundException('Friend request not found');
+    return { message: 'Friend request cancelled' };
+  }
+
+  async getFriends(userId: string, page: number, limit: number, search?: string) {
+    const p = this.page(page, limit);
+    const filter: any = {
+      status: 'open',
+      isDeleted: false,
+      $or: [{ senderId: idQ(userId) }, { receiverId: idQ(userId) }],
+    };
+
+    if (search?.trim()) {
+      const matching = await this.users
+        .find({ name: { $regex: escapeRegex(search.trim()), $options: 'i' } })
+        .select('_id').limit(1000).lean();
+      const ids = matching.map((u) => u._id);
+      filter.$or = [
+        { senderId: idQ(userId), receiverId: idsQ(ids) },
+        { receiverId: idQ(userId), senderId: idsQ(ids) },
+      ];
+    }
+
+    const [links, total] = await Promise.all([
+      this.friends.find(filter).sort({ updatedAt: -1, _id: -1 }).skip(p.skip).limit(p.limit).lean(),
+      this.friends.countDocuments(filter),
+    ]);
+    const otherIds = links.map((l) => String(String(l.senderId) === String(userId) ? l.receiverId : l.senderId));
+    const users = await this.users.find({ _id: { $in: otherIds } }).select('_id name displayPic level').lean();
+    const byId = new Map(users.map((u) => [String(u._id), u]));
+
+    return {
+      message: 'Friends fetched successfully',
+      data: otherIds.filter((id) => byId.has(id)).map((id) => this.card(byId.get(id), 'close')),
+      pagination: this.pagination(total, p.page, p.limit),
+    };
+  }
+
+  // All Players tab: everyone except me (and admins / banned / removed), with my relation to each
+  async getAllUsers(currentUserId: string, page: number, limit: number, search?: string) {
+    const p = this.page(page, limit);
+    const query: any = { ...VISIBLE_PLAYER, _id: { $ne: new Types.ObjectId(String(currentUserId)) } };
+    if (search?.trim()) query.name = { $regex: escapeRegex(search.trim()), $options: 'i' };
+
+    const [users, total] = await Promise.all([
+      this.users.find(query).select('_id name displayPic level').sort({ level: -1, _id: 1 }).skip(p.skip).limit(p.limit).lean(),
+      this.users.countDocuments(query),
     ]);
 
-    total = totalResult[0]?.total || 0;
-    console.log("Total Result (with search):", total);
+    const userIds = users.map((u) => String(u._id));
+    const relations = userIds.length
+      ? await this.friends.find({
+          isDeleted: false,
+          status: { $in: ['pending', 'open'] },
+          $or: [
+            { senderId: idQ(currentUserId), receiverId: idsQ(userIds) },
+            { receiverId: idQ(currentUserId), senderId: idsQ(userIds) },
+          ],
+        }).lean()
+      : [];
+
+    const me = String(currentUserId);
+    const data = users.map((user) => {
+      const id = String(user._id);
+      const relation = relations.find(
+        (r) => (String(r.senderId) === me && String(r.receiverId) === id) || (String(r.receiverId) === me && String(r.senderId) === id),
+      );
+      let relationStatus = 'open';
+      if (relation?.status === 'open') relationStatus = 'close';
+      else if (relation?.status === 'pending') relationStatus = String(relation.senderId) === me ? 'requested' : 'pending';
+      return this.card(user, relationStatus);
+    });
+
+    return { message: 'Users fetched successfully', data, pagination: this.pagination(total, p.page, p.limit) };
   }
 
-  return {
-    message: "Friends fetched successfully",
-    data: friends,
-    pagination: {
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit)
-    }
-  };
-}
-
-
-async getAllUsers(currentUserId: string, page: number, limit: number, search?: string) {
-  const skip = (page - 1) * limit;
-
-  // 1. query build karo
-  const query: any = { _id: { $ne: currentUserId } }; // apna khud ka record skip
-  if (search) {
-    query.name = { $regex: search, $options: "i" }; // optional search
-  }
-
-  // 2. parallel fetch karo: users + total count
-  const [users, total] = await Promise.all([
-    this.databaseService.repositories.userModel
-      .find(query)
-      .select("_id name displayPic level")
-      .skip(skip)
-      .limit(limit),
-
-    this.databaseService.repositories.userModel.countDocuments(query),
-  ]);
-
-  // 3. un 10 users ki IDs nikalo
-  const userIds = users.map(u => u._id.toString());
-
-  // 4. relations fetch karo sirf unhi 10 users ke liye
-  const relations = await this.databaseService.repositories.friendModel.find({
-    isDeleted: false, // ✅ sirf active documents
-    $or: [
-      { senderId: currentUserId, receiverId: { $in: userIds } },
-      { receiverId: currentUserId, senderId: { $in: userIds } },
-    ],
-  });
-
-  // 5. ab final response build karo
-  const data = users.map(user => {
-    const relation = relations.find(r =>
-     (r.senderId === currentUserId as any && r.receiverId === (user._id as any).toString()) ||
-      (r.receiverId === currentUserId as any && r.senderId === (user._id as any).toString())   
+  async removeFriend(currentUserId: string, otherUserId: string) {
+    const friend = await this.friends.findOneAndUpdate(
+      {
+        $or: [
+          { senderId: idQ(currentUserId), receiverId: idQ(otherUserId) },
+          { senderId: idQ(otherUserId), receiverId: idQ(currentUserId) },
+        ],
+        status: 'open',
+        isDeleted: false,
+      },
+      { $set: { isDeleted: true } },
+      { new: true },
     );
-
-    let relationStatus = "open"; // default: koi relation hi nahi
-
-    if (relation) {
-      if (relation.status === "pending") {
-        if (relation.senderId === currentUserId as any) {
-          relationStatus = "requested"; 
-        } else {
-          relationStatus = "pending";   
-        }
-      } else if (relation.status === "open") {
-        relationStatus = "close"; 
-      }
-     
-    }
-
-    return {
-      _id: user._id,
-      name: user.name,
-      displayPic: user.displayPic,
-      level: user.level,
-      relationStatus,
-    };
-  });
-
-  // 6. final response
-  return {
-    message: "Users fetched successfully",
-    data,
-    pagination: {
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    },
-  };
-}
-
-async removeFriend(currentUserId: string, otherUserId: string) {
-  console.log("Current User:", currentUserId);
-  console.log("Other User:", otherUserId);
-
-  // ✅ document find karo
-  const friend = await this.databaseService.repositories.friendModel.findOneAndUpdate(
-    {
-      $or: [
-        { senderId: currentUserId, receiverId: otherUserId },
-        { senderId: otherUserId, receiverId: currentUserId }
-      ],
-      status: "open",
-      isDeleted: false
-    },
-    {
-      $set: { isDeleted: true }   // 👈 yahan soft delete kar rahe hain
-    },
-    { new: true }
-  );
-
-  if (!friend) {
-    throw new NotFoundException("Friendship not found or already removed");
+    if (!friend) throw new NotFoundException('Friendship not found or already removed');
+    return { message: 'Friend removed' };
   }
-
-  return { message: "Friend removed successfully" };
 }
-
-
-}
-
-
-
-

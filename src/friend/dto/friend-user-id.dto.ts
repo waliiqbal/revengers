@@ -1,6 +1,6 @@
 /* eslint-disable prettier/prettier */
-import { ApiProperty } from '@nestjs/swagger';
-import { IsMongoId, IsNotEmpty } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsIn, IsMongoId, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class FriendUserIdDto {
   @ApiProperty({
@@ -10,4 +10,12 @@ export class FriendUserIdDto {
   @IsNotEmpty()
   @IsMongoId()
   id: string;
+}
+
+// accept-request: the game sends id (= the player who sent the request) + type
+export class FriendRespondDto extends FriendUserIdDto {
+  @ApiPropertyOptional({ enum: ['accept', 'reject', 'decline'], example: 'accept' })
+  @IsOptional()
+  @IsIn(['accept', 'reject', 'decline'])
+  type?: string;
 }

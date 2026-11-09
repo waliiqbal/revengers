@@ -18,7 +18,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { FriendService } from './friend.service';
-import { FriendUserIdDto } from './dto/friend-user-id.dto';
+import { FriendRespondDto, FriendUserIdDto } from './dto/friend-user-id.dto';
 
 @ApiTags('Friend')
 @ApiBearerAuth()
@@ -42,10 +42,10 @@ export class FriendController {
   @UseGuards(AuthGuard('jwt'))
   @Post('accept-request')
   @ApiOperation({ summary: 'Accept friend request' })
-  @ApiBody({ type: FriendUserIdDto })
+  @ApiBody({ type: FriendRespondDto })
   @ApiResponse({ status: 201, description: 'Friend request accepted successfully' })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  async acceptRequest(@Req() req, @Body() body: FriendUserIdDto) {
+  async acceptRequest(@Req() req, @Body() body: FriendRespondDto) {
     const receiverId = req.user.userId;
 
     return this.FriendService.acceptRequest(receiverId, body);
